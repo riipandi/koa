@@ -39,7 +39,11 @@ pub struct Token {
 
 impl Token {
     pub fn new(kind: TokenKind, span: Span, literal: Option<String>) -> Self {
-        Self { kind, span, literal }
+        Self {
+            kind,
+            span,
+            literal,
+        }
     }
 }
 
@@ -82,9 +86,20 @@ pub enum TokenKind {
     SelfType,  // 'Self'
 
     // Types
-    I8, I16, I32, I64, I128, Isize,
-    U8, U16, U32, U64, U128, Usize,
-    F32, F64,
+    I8,
+    I16,
+    I32,
+    I64,
+    I128,
+    Isize,
+    U8,
+    U16,
+    U32,
+    U64,
+    U128,
+    Usize,
+    F32,
+    F64,
     Bool,
     String,
     Void,
@@ -97,42 +112,42 @@ pub enum TokenKind {
     DocComment, // '///' or '//!'
 
     // Operators
-    Plus,          // +
-    Minus,         // -
-    Star,          // *
-    Slash,         // /
-    Percent,       // %
-    Equal,         // =
-    EqualEqual,    // ==
-    BangEqual,     // !=
-    Less,          // <
-    LessEqual,     // <=
-    Greater,       // >
-    GreaterEqual,  // >=
-    And,           // &&
-    Or,            // ||
-    Bang,          // !
-    Question,      // ?
+    Plus,         // +
+    Minus,        // -
+    Star,         // *
+    Slash,        // /
+    Percent,      // %
+    Equal,        // =
+    EqualEqual,   // ==
+    BangEqual,    // !=
+    Less,         // <
+    LessEqual,    // <=
+    Greater,      // >
+    GreaterEqual, // >=
+    And,          // &&
+    Or,           // ||
+    Bang,         // !
+    Question,     // ?
 
     // Symbols
-    LParen,        // (
-    RParen,        // )
-    LBrace,        // {
-    RBrace,        // }
-    LBracket,      // [
-    RBracket,      // ]
-    Dot,           // .
-    Comma,         // ,
-    Colon,         // :
-    DoubleColon,   // ::
-    Semicolon,     // ;
-    Arrow,         // ->
-    FatArrow,      // =>
-    At,            // @ (for attributes)
+    LParen,      // (
+    RParen,      // )
+    LBrace,      // {
+    RBrace,      // }
+    LBracket,    // [
+    RBracket,    // ]
+    Dot,         // .
+    Comma,       // ,
+    Colon,       // :
+    DoubleColon, // ::
+    Semicolon,   // ;
+    Arrow,       // ->
+    FatArrow,    // =>
+    At,          // @ (for attributes)
 
     // Range operators
-    DotDot,        // ..
-    DotDotEqual,   // ..=
+    DotDot,      // ..
+    DotDotEqual, // ..=
 
     // Error and EOF
     Illegal,

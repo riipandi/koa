@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - End-to-End Compilation (2026-02-07)
+
+#### Build & Run Commands
+- **`koa build`** - Compiles Koa source to native executable
+  - Generates LLVM IR (`.ll` file)
+  - Compiles to native executable using clang
+  - Supports all platforms (Windows: `.exe`, Unix: no extension)
+
+- **`koa run`** - Compiles and runs Koa programs
+  - Builds the program
+  - Executes the resulting binary
+  - Displays program output and exit status
+
+#### External Function Support
+- Can call C library functions (printf, puts, etc.)
+- Functions are auto-declared in LLVM IR
+- String constants are properly generated and linked
+
+#### Examples
+Added working examples:
+- `hello_world_final.koa` - Classic Hello World using `puts()`
+- `calc.koa` - Simple calculator with function calls
+- `hello.koa` - Using `printf()` (note: escape sequences not yet supported)
+
+#### Known Limitations
+- String escape sequences (`\n`, `\t`, etc.) not processed - printed literally
+- No `println!` macro yet - use C functions directly
+- No standard library - must declare external functions manually
+
 ### Added - Generic Enums (2026-02-07)
 
 #### IR & Type System

@@ -44,7 +44,7 @@ version:
 	cargo run -p koa-cli -- --version
 
 # Install the CLI using cargo
-install:
+install: build
 	cargo install --path crates/koa-cli
 
 # Clean build artifacts

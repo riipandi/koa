@@ -35,6 +35,8 @@ compose.env*
 .*.vars
 
 # Miscelaneous
+/examples/*
+!/examples/*.koa
 /.notes
 /test_*.rs
 /debug_*.rs

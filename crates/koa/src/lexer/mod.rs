@@ -232,7 +232,16 @@ impl<'input> Lexer<'input> {
             || kind == TokenKind::SelfValue
             || kind == TokenKind::SelfType
         {
-            Some(self.input[start..end].to_string())
+            let raw = self.input[start..end].to_string();
+            if kind == TokenKind::StringLiteral {
+                if raw.len() >= 2 && raw.starts_with('"') && raw.ends_with('"') {
+                    Some(raw[1..raw.len() - 1].to_string())
+                } else {
+                    Some(raw)
+                }
+            } else {
+                Some(raw)
+            }
         } else {
             None
         };
@@ -275,7 +284,7 @@ impl<'input> Lexer<'input> {
                     // It's a range operator like 1..10
                     break;
                 }
-                
+
                 if is_float {
                     break; // Already a float, second dot is something else
                 }
@@ -338,7 +347,7 @@ impl<'input> Lexer<'input> {
             "as" => TokenKind::As,
             "self" => TokenKind::SelfValue,
             "Self" => TokenKind::SelfType,
-            
+
             // Types
             "i8" => TokenKind::I8,
             "i16" => TokenKind::I16,
@@ -357,7 +366,7 @@ impl<'input> Lexer<'input> {
             "bool" => TokenKind::Bool,
             "string" => TokenKind::String,
             "void" => TokenKind::Void,
-            
+
             _ => TokenKind::Ident,
         };
 

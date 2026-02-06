@@ -28,6 +28,14 @@
 
 ### Recent Updates (2026-02-07)
 
+**🎉 End-to-End Compilation Complete:**
+- **Build & Run commands functional** - Can now compile Koa programs to native executables
+- **Working Hello World** - Successfully compiles and runs `hello_world_final.koa`
+- **LLVM pipeline complete** - Lexer → Parser → Typeck → IR → LLVM IR → Native Executable
+- **External function support** - Can call C library functions (printf, puts)
+- **Examples** - Added working examples: hello_world_final.koa, calc.koa, hello.koa
+- **Known limitation** - String escape sequences not yet processed (use puts() for newlines)
+
 **Generic Enums Complete:**
 - Added `IrType::Enum { variants }` to IR for enum representation
 - Implemented enum lowering to IR (similar to struct lowering)

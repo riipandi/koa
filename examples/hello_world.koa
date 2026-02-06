@@ -6,6 +6,6 @@
 
 /// Main function - entry point
 fn main(): i32 {
-    println!("Hello, World!");
+    puts("Hello, World!");
     return 0;
 }
