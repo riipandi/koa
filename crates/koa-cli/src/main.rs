@@ -1,13 +1,15 @@
 //! Koa CLI - Compiler driver
 
 use clap::{Parser as ClapParser, Subcommand};
-use console::{style, Color};
+use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
+use inquire::{Confirm, Select, Text};
 use koa::{ir::IrLowerer, Lexer, Parser as KoaParser, TypeChecker};
 use miette::{IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs;
+use std::fs::{self, File};
+use std::io::Write;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -48,6 +50,32 @@ enum Commands {
     Pkg {
         #[command(subcommand)]
         command: PkgCommands,
+    },
+
+    /// Initialize a new Koa project
+    Init {
+        /// Project name (optional, defaults to current directory)
+        name: Option<String>,
+
+        /// Interactive mode with prompts
+        #[arg(long)]
+        interactive: bool,
+
+        /// Create as library project
+        #[arg(long)]
+        lib: bool,
+
+        /// Initialize git repository
+        #[arg(long)]
+        git: bool,
+
+        /// Skip creating .gitignore
+        #[arg(long)]
+        no_gitignore: bool,
+
+        /// Skip creating README.md
+        #[arg(long)]
+        no_readme: bool,
     },
 
     /// Run tests
@@ -177,6 +205,15 @@ fn main() -> Result<()> {
             PkgCommands::Tree => pkg_tree(),
         },
 
+        Commands::Init {
+            name,
+            interactive,
+            lib,
+            git,
+            no_gitignore,
+            no_readme,
+        } => init(name, interactive, lib, git, no_gitignore, no_readme),
+
         Commands::Test { filter } => test(filter),
     }
 }
@@ -278,6 +315,326 @@ fn run(input: PathBuf) -> Result<()> {
     std::process::Command::new(&exe)
         .status()
         .into_diagnostic()?;
+
+    Ok(())
+}
+
+/// Initialize a new Koa project
+fn init(
+    name: Option<String>,
+    interactive: bool,
+    lib: bool,
+    git: bool,
+    no_gitignore: bool,
+    no_readme: bool,
+) -> Result<()> {
+    // Interactive mode
+    let (name, lib, git, no_gitignore, no_readme) = if interactive {
+        let project_name = if let Some(n) = &name {
+            n.clone()
+        } else {
+            Text::new("Project name:")
+                .with_placeholder("myproject")
+                .prompt()
+                .into_diagnostic()?
+        };
+
+        let project_type = Select::new("Project type:", vec!["Executable", "Library"])
+            .prompt()
+            .into_diagnostic()?;
+
+        let init_git = Confirm::new("Initialize git repository?")
+            .with_default(true)
+            .prompt()
+            .into_diagnostic()?;
+
+        let create_gitignore = Confirm::new("Create .gitignore?")
+            .with_default(true)
+            .prompt()
+            .into_diagnostic()?;
+
+        let create_readme = Confirm::new("Create README.md?")
+            .with_default(true)
+            .prompt()
+            .into_diagnostic()?;
+
+        (
+            Some(project_name),
+            project_type == "Library",
+            init_git,
+            !create_gitignore,
+            !create_readme,
+        )
+    } else {
+        (name, lib, git, no_gitignore, no_readme)
+    };
+
+    let project_name = if let Some(n) = &name {
+        n.clone()
+    } else {
+        // Check if current directory is empty
+        let current_dir = std::env::current_dir().into_diagnostic()?;
+        let dir_name = current_dir
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("koa-project")
+            .to_string();
+
+        // Check if directory is empty (only hidden files allowed)
+        let is_empty = current_dir
+            .read_dir()
+            .into_diagnostic()?
+            .filter_map(Result::ok)
+            .all(|entry| {
+                let name = entry.file_name();
+                name.to_string_lossy().starts_with('.')
+            });
+
+        if !is_empty {
+            miette::bail!(
+                "Current directory is not empty. Specify a project name or run in an empty directory."
+            );
+        }
+
+        dir_name
+    };
+
+    // Create project directory if name was provided
+    let project_dir = if name.is_some() {
+        let dir = PathBuf::from(&project_name);
+        if dir.exists() {
+            miette::bail!("Directory '{}' already exists", project_name);
+        }
+
+        let spinner = create_spinner(&format!("Creating {}...", style(&project_name).cyan()));
+        fs::create_dir_all(&dir).into_diagnostic()?;
+        spinner.finish_with_message(
+            style(format!("Created {}", project_name))
+                .green()
+                .to_string(),
+        );
+
+        dir
+    } else {
+        PathBuf::from(".")
+    };
+
+    // Create Koa.toml
+    let spinner = create_spinner("Creating Koa.toml...");
+    let koa_toml = format!(
+        r#"[package]
+name = "{}"
+version = "0.1.0"
+type = "{}"
+
+[dependencies]
+"#,
+        project_name,
+        if lib { "library" } else { "executable" }
+    );
+
+    let toml_path = project_dir.join("Koa.toml");
+    let mut file = File::create(&toml_path).into_diagnostic()?;
+    file.write_all(koa_toml.as_bytes()).into_diagnostic()?;
+    spinner.finish_with_message(style("Koa.toml created").green().to_string());
+
+    // Create src directory
+    let spinner = create_spinner("Creating src directory...");
+    let src_dir = project_dir.join("src");
+    fs::create_dir_all(&src_dir).into_diagnostic()?;
+    spinner.finish_with_message(style("src/ created").green().to_string());
+
+    // Create main.koa or lib.koa
+    let spinner = create_spinner(&format!(
+        "Creating {}...",
+        style(if lib { "lib.koa" } else { "main.koa" }).cyan()
+    ));
+
+    let source_file = if lib {
+        src_dir.join("lib.koa")
+    } else {
+        src_dir.join("main.koa")
+    };
+
+    let source_code = if lib {
+        r#"///
+/// Koa Library
+///
+
+///
+/// Add two numbers
+///
+/// # Examples
+/// ```
+/// const result: i32 = add(1, 2);
+/// assert_eq!(result, 3);
+/// ```
+///
+pub fn add(x: i32, y: i32): i32 {
+    return x + y;
+}
+
+///
+/// Subtract two numbers
+///
+pub fn sub(x: i32, y: i32): i32 {
+    return x - y;
+}
+"#
+    } else {
+        r#"///
+/// Koa Main Entry Point
+///
+
+fn main(): i32 {
+    println!("Hello, World!");
+    return 0;
+}
+"#
+    };
+
+    let mut file = File::create(&source_file).into_diagnostic()?;
+    file.write_all(source_code.as_bytes()).into_diagnostic()?;
+    spinner.finish_with_message(
+        style(format!(
+            "{} created",
+            if lib { "lib.koa" } else { "main.koa" }
+        ))
+        .green()
+        .to_string(),
+    );
+
+    // Create .gitignore
+    if !no_gitignore {
+        let spinner = create_spinner("Creating .gitignore...");
+        let gitignore = r#"# Koa build artifacts
+.koa/
+build/
+*.koa.o
+*.koa.bc
+
+# Koa lockfile
+# Uncomment to commit lockfile:
+# Koa.lock
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+"#;
+
+        let gitignore_path = project_dir.join(".gitignore");
+        let mut file = File::create(&gitignore_path).into_diagnostic()?;
+        file.write_all(gitignore.as_bytes()).into_diagnostic()?;
+        spinner.finish_with_message(style(".gitignore created").green().to_string());
+    }
+
+    // Create README.md
+    if !no_readme {
+        let spinner = create_spinner("Creating README.md...");
+        let readme = format!(
+            r#"# {}
+
+{}
+
+## Installation
+
+```bash
+git clone https://github.com/user/{}.git
+cd {}
+koa build
+```
+
+## Usage
+
+```bash
+{}
+```
+
+## Development
+
+```bash
+# Run tests
+koa test
+
+# Build
+koa build
+
+# Run
+{}
+```
+
+## License
+
+MIT
+"#,
+            project_name,
+            if lib {
+                "A Koa library project"
+            } else {
+                "A Koa application"
+            },
+            project_name,
+            project_name,
+            if lib {
+                format!("import {{ add }} from \"{}\";\n\nfn main(): i32 {{\n    println!(\"1 + 2 = {{}}\", add(1, 2));\n    return 0;\n}}", project_name)
+            } else {
+                "koa run".to_string()
+            },
+            if lib {
+                format!("cargo run --example test")
+            } else {
+                "./build/debug/main".to_string()
+            }
+        );
+
+        let readme_path = project_dir.join("README.md");
+        let mut file = File::create(&readme_path).into_diagnostic()?;
+        file.write_all(readme.as_bytes()).into_diagnostic()?;
+        spinner.finish_with_message(style("README.md created").green().to_string());
+    }
+
+    // Initialize git repository if requested
+    if git {
+        let spinner = create_spinner("Initializing git repository...");
+        std::process::Command::new("git")
+            .arg("init")
+            .current_dir(&project_dir)
+            .output()
+            .into_diagnostic()?;
+
+        spinner.finish_with_message(style("Git repository initialized").green().to_string());
+    }
+
+    // Print summary
+    println!();
+    println!(
+        "{}",
+        style("✓ Project created successfully!").green().bold()
+    );
+    println!();
+
+    if name.is_some() {
+        println!("Next steps:");
+        println!("  1. cd {}", style(&project_name).cyan());
+    } else {
+        println!("Next steps:");
+    }
+    println!(
+        "  2. {} dependencies if needed",
+        style("koa pkg add").cyan()
+    );
+    println!("  3. {} to build", style("koa build").cyan());
+    println!(
+        "  4. {} to run",
+        style(if lib { "koa test" } else { "koa run" }).cyan()
+    );
+    println!();
 
     Ok(())
 }

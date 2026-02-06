@@ -29,6 +29,46 @@ koa test
 koa test --filter <test_name>
 ```
 
+### Project Initialization
+
+#### Interactive Mode (Recommended for New Users)
+```bash
+# Guided project setup with prompts
+koa init --interactive
+
+# With project name preset
+koa init --interactive myproject
+```
+
+**Interactive Prompts:**
+```
+? Project name: myproject
+? Project type:
+  > Executable
+    Library
+? Initialize git repository? (Y/n) yes
+? Create .gitignore? (Y/n) yes
+? Create README.md? (Y/n) yes
+```
+
+#### Non-Interactive Mode
+```bash
+# Create new project in directory
+koa init myproject
+
+# Create library project
+koa init --lib mylib
+
+# Create with git initialized
+koa init --git myproject
+
+# Create in current directory (must be empty)
+koa init
+
+# Minimal project (no .gitignore or README)
+koa init --no-gitignore --no-readme minimal
+```
+
 ---
 
 ## Package Management (koa pkg)
