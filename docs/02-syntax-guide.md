@@ -46,7 +46,7 @@ if x > 0 {
 
 ## Variables
 
-Koa uses `const` for immutable and `var` for mutable (like TypeScript's const/let and Zig):
+Koa uses `const` for immutable and `let` for mutable (like TypeScript's const/let):
 
 ```typescript
 // Immutable (default, recommended)
@@ -55,13 +55,13 @@ const pi: f64 = 3.14159
 const numbers: [i32; 3] = [1, 2, 3]
 
 // Mutable (only when needed to change)
-var counter: i32 = 0
+let counter: i32 = 0
 counter += 1
 
 // Variables MUST be initialized
 const x: i32 = 42        // OK
-var y: f64 = 3.14        // OK
-var z: i32               // ERROR: must be initialized
+let y: f64 = 3.14        // OK
+let z: i32               // ERROR: must be initialized
 ```
 
 ### Variable Naming

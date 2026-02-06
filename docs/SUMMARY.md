@@ -111,7 +111,7 @@ pub fn main(): i32 {
 - Error sets and error unions
 - Generics support
 - Methods defined in struct body
-- const/var variables
+- const/let variables
 - Async/await
 - Simple annotations
 - LLVM backend

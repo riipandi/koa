@@ -18,7 +18,7 @@ Koa adopts syntax and concepts from TypeScript:
 ```typescript
 // Variables (like TypeScript's const/let)
 const x: i32 = 42        // Immutable
-var y: f64 = 3.14        // Mutable
+let y: f64 = 3.14        // Mutable
 
 // Struct with methods (like TypeScript classes)
 struct Point {
@@ -83,7 +83,7 @@ Koa rejects unnecessary complexity:
 - ❌ **No complex module system** (Go) - Rigid workspace
 - ✅ **Error sets** (Zig) - Simple and explicit
 - ✅ **Methods in struct body** (Zig) - Natural, no impl blocks
-- ✅ **const/var variables** - Clear intent
+- ✅ **const/let variables** - Clear intent
 
 ## Why Not Other Languages?
 
@@ -125,7 +125,7 @@ let y: string = "hello"
 
 // Koa
 const x: i32 = 42
-var y: string = "hello"
+let y: string = "hello"
 ```
 
 ### Structs & Methods
