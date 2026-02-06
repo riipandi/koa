@@ -102,6 +102,7 @@ fn example() -> Result<()> {
 - Use `assert_eq!()` for value comparisons
 - Use `assert!()` for boolean conditions
 - Keep tests focused and independent
+- **AVOID `unwrap()` in production code** - use proper error handling with `?` or `miette::Result`
 
 **Performance**:
 - Use `&str` over `String` for function parameters where possible
@@ -138,7 +139,7 @@ fn example() -> Result<()> {
 - Separate declarations from instructions
 
 ### LLVM Gen (`crates/koa/src/llvm_gen/`)
-- Use inkwell for LLVM bindings (version 0.6, LLVM 17)
+- Use inkwell for LLVM bindings (version 0.4.0, LLVM 15)
 - Preserve source locations for debugging
 - Use `.into_diagnostic()?` on LLVM builder calls
 - Declare external functions (printf, etc.) before use
@@ -224,7 +225,7 @@ docs/                   # Documentation
 ## Important Notes
 
 - **Comment handling**: Lexer now properly skips `//`, `///`, `//!`, and `/* */` comments
-- **LLVM version**: Using inkwell 0.6 with LLVM 17
+- **LLVM version**: Using inkwell 0.4.0 with LLVM 15
 - **Workspace dependencies**: Defined in root `Cargo.toml`
 - **Testing**: All tests pass, use `cargo test -p koa` for compiler tests
 - **Parser grammar**: Hand-written recursive descent (not using lalrpop yet)
@@ -276,4 +277,3 @@ docs/                   # Documentation
 - ✅ Issues found → `KNOWN_ISSUES.md` (Outstanding Issues section)
 - ✅ Implementation details → Update existing `docs/*.md` files
 - ✅ Next steps → `docs/10-implementation-plan.md` (Next Steps section)
-
