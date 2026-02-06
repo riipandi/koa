@@ -3,9 +3,12 @@
 //! The IR is a simplified representation of the AST optimized for code generation.
 
 use crate::ast::*;
+use crate::lexer::Lexer;
+use crate::parser::Parser;
 use miette::Result;
 use std::collections::HashMap;
 use std::fmt;
+use std::path::Path;
 
 /// Intermediate representation of a Koa program
 #[derive(Debug, Clone)]
@@ -216,7 +219,9 @@ pub struct IrLowerer {
     specialized_structs: HashMap<String, IrType>,
     specialized_enums: HashMap<String, IrType>,
     type_substitution: HashMap<String, Type>,
-    loop_stack: Vec<(String, String)>, // (continue_label, break_label)
+    loop_stack: Vec<(String, String)>,
+    import_modules: HashMap<String, Vec<String>>,
+    import_aliases: HashMap<String, String>,
 }
 
 impl IrLowerer {
@@ -234,6 +239,8 @@ impl IrLowerer {
             specialized_enums: HashMap::new(),
             type_substitution: HashMap::new(),
             loop_stack: Vec::new(),
+            import_modules: HashMap::new(),
+            import_aliases: HashMap::new(),
         }
     }
 
@@ -285,6 +292,9 @@ impl IrLowerer {
                         types.insert(enum_decl.name.clone(), ir_type);
                     }
                 }
+                Declaration::ImportDecl(import_decl) => {
+                    self.process_import(import_decl)?;
+                }
                 _ => {}
             }
         }
@@ -305,6 +315,65 @@ impl IrLowerer {
             globals,
             types,
         })
+    }
+
+    fn process_import(&mut self, import_decl: &ImportDecl) -> Result<()> {
+        for specifier in &import_decl.specifiers {
+            match specifier {
+                ImportSpecifier::Star(alias) => {
+                    let module_name = alias.clone().unwrap_or_else(|| {
+                        import_decl
+                            .from
+                            .split('/')
+                            .last()
+                            .unwrap_or(&import_decl.from)
+                            .to_string()
+                    });
+
+                    let file_path = self.resolve_import_path(&import_decl.from)?;
+                    let source = std::fs::read_to_string(&file_path).map_err(|e| {
+                        miette::miette!("Failed to read import '{}': {}", file_path, e)
+                    })?;
+
+                    let mut lexer = Lexer::new(&source);
+                    let tokens = lexer.tokenize()?;
+
+                    let mut parser = Parser::new(tokens);
+                    let ast = parser.parse()?;
+
+                    let mut imported_funcs = Vec::new();
+                    for decl in &ast.declarations {
+                        if let Declaration::FnDecl(fn_decl) = decl {
+                            if fn_decl.is_pub {
+                                self.fn_map.insert(fn_decl.name.clone(), fn_decl.clone());
+                                imported_funcs.push(fn_decl.name.clone());
+                            }
+                        }
+                    }
+
+                    self.import_modules
+                        .insert(module_name.clone(), imported_funcs);
+                    self.import_aliases
+                        .insert(module_name.clone(), import_decl.from.clone());
+                }
+                ImportSpecifier::Named(_name, _alias) => {
+                    todo!("Named imports not yet implemented");
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn resolve_import_path(&self, import_path: &str) -> Result<String> {
+        if import_path.starts_with("std/") {
+            let relative_path = import_path.trim_start_matches("std/");
+            let full_path = format!("library/std/{}.koa", relative_path);
+            if Path::new(&full_path).exists() {
+                return Ok(full_path);
+            }
+        }
+
+        Err(miette::miette!("Import not found: {}", import_path))
     }
 
     fn new_temp(&mut self) -> String {
@@ -595,10 +664,14 @@ impl IrLowerer {
 
                 let callee = match &*call_expr.callee {
                     Expression::Identifier(name) => {
-                        // Trigger specialization!
                         self.specialize_fn(name, call_expr.type_args.as_ref())?
                     }
-                    Expression::Member(m) => m.property.clone(),
+                    Expression::Member(m) => match &*m.object {
+                        Expression::Identifier(module_name) => {
+                            format!("{}__{}", module_name, m.property)
+                        }
+                        _ => m.property.clone(),
+                    },
                     _ => return Err(miette::miette!("Expected function name")),
                 };
 

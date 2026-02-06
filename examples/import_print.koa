@@ -1,0 +1,7 @@
+import * as io from "std/io";
+
+fn main(): i32 {
+    io.print("Hello ");
+    io.println("World!");
+    return 0;
+}

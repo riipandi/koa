@@ -28,6 +28,15 @@
 
 ### Recent Updates (2026-02-07)
 
+**🎉 Module System & Standard Library Complete:**
+- **Import system** - `import * as io from "std/io"` syntax working
+- **Module resolution** - Loads and parses `library/std/*.koa` files
+- **Qualified calls** - `io.println()` calls work with name mangling
+- **Std library** - `std/io.koa` with `print()` and `println()` functions
+- **LLVM integration** - Maps `io__println` → `puts`, `io__print` → `printf`
+- **Examples** - demo.koa, import_hello.koa, import_print.koa
+- All 81 tests passing
+
 **🎉 End-to-End Compilation Complete:**
 - **Build & Run commands functional** - Can now compile Koa programs to native executables
 - **Working Hello World** - Successfully compiles and runs `hello_world_final.koa`

@@ -35,10 +35,13 @@ compose.env*
 .*.vars
 
 # Miscelaneous
-/examples/*
-!/examples/*.koa
 /.notes
 /test_*.rs
 /debug_*.rs
 /*.koa
 /*.ll
+
+# Examples
+/examples/*
+!/examples/*.koa
+Koa.lock

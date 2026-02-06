@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Module System & Standard Library (2026-02-07)
+
+#### Module System
+- Implemented `import * as name from "path"` syntax
+- Module resolution for `std/*` paths (resolves to `library/std/*.koa`)
+- Qualified function calls (e.g., `io.println`)
+- Function name mangling for module functions (`io.println` → `io__println`)
+
+#### Standard Library
+- Added `library/std/io.koa` with print functions
+- `io.print(s: string)` - Print to stdout (uses puts)
+- `io.println(s: string)` - Print with newline (uses puts)
+
+#### LLVM Codegen
+- Runtime function mapping: `io__println` → `puts`, `io__print` → `printf`
+- Automatic import of std/io functions during compilation
+
+#### Examples
+- `demo.koa` - Demonstrates module system
+- `import_hello.koa` - Hello World with imports
+- `import_print.koa` - Using io.print and io.println
+
 ### Added - End-to-End Compilation (2026-02-07)
 
 #### Build & Run Commands

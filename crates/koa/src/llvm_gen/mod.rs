@@ -371,10 +371,16 @@ impl<'ctx> LLVMCodegen<'ctx> {
             }
 
             IrInstruction::Call { callee, args, dest } => {
+                let actual_callee = match callee.as_str() {
+                    "io__println" => "puts",
+                    "io__print" => "printf",
+                    _ => callee.as_str(),
+                };
+
                 let fn_value = self
                     .module
-                    .get_function(callee)
-                    .ok_or_else(|| miette::miette!("Function not found: {}", callee))?;
+                    .get_function(actual_callee)
+                    .ok_or_else(|| miette::miette!("Function not found: {}", actual_callee))?;
 
                 let mut llvm_args = Vec::new();
                 for arg in args {
