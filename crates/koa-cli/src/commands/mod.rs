@@ -1,3 +1,3 @@
-pub mod doctor;
 pub mod build;
+pub mod doctor;
 pub mod run;

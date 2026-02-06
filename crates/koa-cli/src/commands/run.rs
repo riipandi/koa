@@ -3,7 +3,7 @@ use anyhow::Result;
 use colored::*;
 use std::path::Path;
 
-pub fn execute(input: Option<&str>) -> Result<()> {
+pub fn execute(input: Option<&str>, _output: Option<&str>) -> Result<()> {
     let target_path = build::resolve_target(input)?;
     let target_path = Path::new(&target_path);
 
@@ -11,12 +11,20 @@ pub fn execute(input: Option<&str>) -> Result<()> {
         anyhow::bail!("Input file '{}' not found", target_path.display());
     }
 
-    build::execute(input, "debug")?;
+    build::execute(input, None, "debug")?;
 
-    let exe_path = if cfg!(target_os = "windows") {
-        target_path.with_extension("exe")
+    let exe_path = if let Some(project_dir) = get_project_dir(&target_path) {
+        if cfg!(target_os = "windows") {
+            project_dir.join("build/debug/main.exe")
+        } else {
+            project_dir.join("build/debug/main")
+        }
     } else {
-        target_path.with_extension("")
+        if cfg!(target_os = "windows") {
+            target_path.with_extension("exe")
+        } else {
+            target_path.with_extension("")
+        }
     };
 
     println!(
@@ -48,4 +56,16 @@ pub fn execute(input: Option<&str>) -> Result<()> {
     );
 
     Ok(())
+}
+
+fn get_project_dir(target_path: &Path) -> Option<&Path> {
+    if target_path.is_dir() {
+        Some(target_path)
+    } else if target_path.join("Koa.toml").exists() {
+        Some(target_path)
+    } else if target_path.join("src/main.koa").exists() {
+        Some(target_path.parent()?)
+    } else {
+        None
+    }
 }

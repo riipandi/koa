@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Examples Refactor & Project Detection (2026-02-07)
+
+#### Examples Restructure
+- **Project mode**: `examples/basic/` with `Koa.toml` and `src/main.koa`
+- **Simple mode**: `examples/simple/*.koa` for single-file examples
+- Removed README.md from examples directory
+
+#### CLI Enhancements
+- Added `-o, --output` flag for custom output paths
+  ```bash
+  koa build input.koa -o build/myapp
+  ```
+- Automatic project detection when `Koa.toml` is present
+  ```bash
+  koa build              # Detects and builds project in current dir
+  koa build examples/basic  # Builds project with Koa.toml
+  ```
+
+#### Build Output Locations
+- **Project mode**: `build/debug/main` (or `main.exe` on Windows)
+- **Simple mode**: `input.koa` → `input` (or `input.exe`)
+- Custom output: `-o path/to/binary`
+
 ### Added - Module System & Standard Library (2026-02-07)
 
 #### Module System

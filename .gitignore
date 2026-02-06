@@ -43,5 +43,7 @@ compose.env*
 
 # Examples
 /examples/*
-!/examples/*.koa
+!/examples/basic/src/*.koa
+!/examples/basic/Koa.toml
+!/examples/simple/*.koa
 Koa.lock

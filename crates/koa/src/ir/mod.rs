@@ -222,6 +222,7 @@ pub struct IrLowerer {
     loop_stack: Vec<(String, String)>,
     import_modules: HashMap<String, Vec<String>>,
     import_aliases: HashMap<String, String>,
+    builtin_functions: Vec<String>,
 }
 
 impl IrLowerer {
@@ -241,6 +242,7 @@ impl IrLowerer {
             loop_stack: Vec::new(),
             import_modules: HashMap::new(),
             import_aliases: HashMap::new(),
+            builtin_functions: vec!["println".to_string(), "print".to_string()],
         }
     }
 
@@ -259,7 +261,10 @@ impl IrLowerer {
                     self.enum_map.insert(e.name.clone(), e.clone());
                 }
                 Declaration::FnDecl(f) => {
-                    self.fn_map.insert(f.name.clone(), f.clone());
+                    // Skip builtin functions
+                    if !self.builtin_functions.contains(&f.name) {
+                        self.fn_map.insert(f.name.clone(), f.clone());
+                    }
                 }
                 _ => {}
             }
@@ -268,6 +273,10 @@ impl IrLowerer {
         for decl in &ast.declarations {
             match decl {
                 Declaration::FnDecl(fn_decl) => {
+                    // Skip builtin functions (they're in prelude)
+                    if fn_decl.name == "println" || fn_decl.name == "print" {
+                        continue;
+                    }
                     // Only lower non-generic functions in the top level
                     if fn_decl.type_params.is_empty() {
                         let ir_fn = self.lower_fn_decl(fn_decl)?;
@@ -356,8 +365,29 @@ impl IrLowerer {
                     self.import_aliases
                         .insert(module_name.clone(), import_decl.from.clone());
                 }
-                ImportSpecifier::Named(_name, _alias) => {
-                    todo!("Named imports not yet implemented");
+                ImportSpecifier::Named(name, _) => {
+                    let file_path = self.resolve_import_path(&import_decl.from)?;
+                    let source = std::fs::read_to_string(&file_path).map_err(|e| {
+                        miette::miette!("Failed to read import '{}': {}", file_path, e)
+                    })?;
+
+                    let mut lexer = Lexer::new(&source);
+                    let tokens = lexer.tokenize()?;
+
+                    let mut parser = Parser::new(tokens);
+                    let ast = parser.parse()?;
+
+                    for decl in &ast.declarations {
+                        if let Declaration::FnDecl(fn_decl) = decl {
+                            if fn_decl.name == *name && fn_decl.is_pub {
+                                // Create unique mangled name for imported function
+                                let module_prefix = import_decl.from.replace('/', "__");
+                                let mangled_name = format!("{}__{}", module_prefix, name);
+                                self.fn_map.insert(mangled_name.clone(), fn_decl.clone());
+                                self.import_aliases.insert(name.clone(), mangled_name);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -664,7 +694,14 @@ impl IrLowerer {
 
                 let callee = match &*call_expr.callee {
                     Expression::Identifier(name) => {
-                        self.specialize_fn(name, call_expr.type_args.as_ref())?
+                        // Check if it's a builtin function
+                        if self.builtin_functions.contains(name) {
+                            name.clone()
+                        } else if let Some(mangled) = self.import_aliases.get(name) {
+                            mangled.clone()
+                        } else {
+                            self.specialize_fn(name, call_expr.type_args.as_ref())?
+                        }
                     }
                     Expression::Member(m) => match &*m.object {
                         Expression::Identifier(module_name) => {

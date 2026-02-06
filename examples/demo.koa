@@ -1,8 +1,0 @@
-import * as io from "std/io";
-
-fn main(): i32 {
-    io.println("=== Koa Demo ===");
-    io.println("Hello from Koa!");
-    io.println("Module system works!");
-    return 0;
-}

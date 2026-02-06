@@ -3,7 +3,12 @@ use colored::*;
 use std::path::Path;
 use std::time::Instant;
 
-pub fn execute(input: Option<&str>, _mode: &str) -> Result<()> {
+fn create_dir_all(path: &Path) -> Result<()> {
+    std::fs::create_dir_all(path)
+        .map_err(|e| anyhow::anyhow!("Failed to create directory '{}': {}", path.display(), e))
+}
+
+pub fn execute(input: Option<&str>, output: Option<&str>, _mode: &str) -> Result<()> {
     let target_path = resolve_target(input)?;
     let target_path = Path::new(&target_path);
 
@@ -11,14 +16,34 @@ pub fn execute(input: Option<&str>, _mode: &str) -> Result<()> {
         anyhow::bail!("Input file '{}' not found", target_path.display());
     }
 
+    // Check if this is a project (has Koa.toml)
+    let is_project = target_path.is_dir() || Path::new(target_path).join("Koa.toml").exists();
+
+    let (source_path, project_dir) = if is_project {
+        let project_root = if target_path.is_dir() {
+            target_path.to_path_buf()
+        } else {
+            target_path.parent().unwrap().to_path_buf()
+        };
+
+        let main_file = project_root.join("src/main.koa");
+        if !main_file.exists() {
+            anyhow::bail!("Project main file not found: {}", main_file.display());
+        }
+
+        (main_file, Some(project_root))
+    } else {
+        (target_path.to_path_buf(), None)
+    };
+
     let start = Instant::now();
 
     println!(
         "{} {}",
         "▸".cyan(),
-        format!("Reading {}", target_path.display()).dimmed()
+        format!("Reading {}", source_path.display()).dimmed()
     );
-    let source = std::fs::read_to_string(target_path)?;
+    let source = std::fs::read_to_string(&source_path)?;
 
     println!("{} Lexing...", "▸".cyan());
     let tokens = koa::Lexer::new(&source)
@@ -46,22 +71,47 @@ pub fn execute(input: Option<&str>, _mode: &str) -> Result<()> {
         koa::llvm_gen::compile_to_llvm(&ir_program).map_err(|e| anyhow::anyhow!("{:?}", e))?;
     println!("  {} LLVM IR generated", "✓".green());
 
-    let output_path = target_path.with_extension("ll");
-    println!("{} Writing LLVM IR...", "▸".cyan());
-    std::fs::write(&output_path, &llvm_ir)?;
-    println!("  {} Written to {}", "✓".green(), output_path.display());
+    // Determine output paths
+    let (ll_path, exe_path) = if let Some(project_dir) = project_dir {
+        let build_dir = project_dir.join("build/debug");
+        create_dir_all(&build_dir)?;
 
-    let exe_path = if cfg!(target_os = "windows") {
-        target_path.with_extension("exe")
+        let ll_path = build_dir.join("main.ll");
+
+        let exe_name = source_path
+            .file_stem()
+            .unwrap_or_else(|| std::ffi::OsStr::new("output"));
+
+        let exe_path = if cfg!(target_os = "windows") {
+            build_dir.join(exe_name).with_extension("exe")
+        } else {
+            build_dir.join(exe_name)
+        };
+
+        (ll_path, exe_path)
     } else {
-        target_path.with_extension("")
+        let ll_path = source_path.with_extension("ll");
+        let exe_path = output
+            .map(|p| Path::new(p).to_path_buf())
+            .unwrap_or_else(|| {
+                if cfg!(target_os = "windows") {
+                    source_path.with_extension("exe")
+                } else {
+                    source_path.with_extension("")
+                }
+            });
+        (ll_path, exe_path)
     };
+
+    println!("{} Writing LLVM IR...", "▸".cyan());
+    std::fs::write(&ll_path, &llvm_ir)?;
+    println!("  {} Written to {}", "✓".green(), ll_path.display());
 
     println!("{} Compiling to native executable...", "▸".cyan());
     let output = std::process::Command::new("clang")
         .arg("-o")
         .arg(&exe_path)
-        .arg(&output_path)
+        .arg(&ll_path)
         .arg("-lSystem")
         .output()
         .map_err(|e| anyhow::anyhow!("Failed to execute clang: {}", e))?;
@@ -93,16 +143,14 @@ pub fn resolve_target(input: Option<&str>) -> Result<String> {
         return Ok(path.to_string());
     }
 
+    // Check for Koa.toml (Project mode)
     if Path::new("Koa.toml").exists() {
-        return Ok("Project (Koa.toml)".to_string());
+        return Ok(".".to_string());
     }
 
+    // Check for src/main.koa (Implicit entry point)
     if Path::new("src/main.koa").exists() {
-        return Ok("src/main.koa".to_string());
-    }
-
-    if Path::new("src/lib.koa").exists() {
-        return Ok("src/lib.koa".to_string());
+        return Ok(".".to_string());
     }
 
     anyhow::bail!("No input file specified, no Koa.toml, and no src/main.koa or src/lib.koa found.")

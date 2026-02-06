@@ -69,12 +69,16 @@ pub fn check() -> Result<()> {
     if healthy {
         println!(
             "{}",
-            "✔ Your system is ready for Koa development! 🐨".green().bold()
+            "✔ Your system is ready for Koa development! 🐨"
+                .green()
+                .bold()
         );
     } else {
         println!(
             "{}",
-            "✘ Some tools are missing or outdated. Please check the requirements.".yellow().bold()
+            "✘ Some tools are missing or outdated. Please check the requirements."
+                .yellow()
+                .bold()
         );
     }
 

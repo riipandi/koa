@@ -371,7 +371,12 @@ impl<'ctx> LLVMCodegen<'ctx> {
             }
 
             IrInstruction::Call { callee, args, dest } => {
+                // Map builtin and imported functions to runtime
                 let actual_callee = match callee.as_str() {
+                    "println" => "puts",
+                    "print" => "printf",
+                    "std__io__println" => "puts",
+                    "std__io__print" => "printf",
                     "io__println" => "puts",
                     "io__print" => "printf",
                     _ => callee.as_str(),

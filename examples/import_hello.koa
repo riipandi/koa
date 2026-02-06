@@ -1,6 +1,0 @@
-import * as io from "std/io";
-
-fn main(): i32 {
-    io.println("Hello, World!");
-    return 0;
-}
