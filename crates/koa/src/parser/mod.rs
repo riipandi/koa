@@ -3,8 +3,8 @@
 //! The parser is responsible for building the Abstract Syntax Tree from tokens.
 
 use crate::ast::*;
-use crate::lexer::{Lexer, Token, TokenKind};
-use miette::{IntoDiagnostic, Result};
+use crate::lexer::{Token, TokenKind};
+use miette::Result;
 
 /// Parser for Koa source code
 pub struct Parser {

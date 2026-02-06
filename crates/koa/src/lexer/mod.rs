@@ -2,7 +2,7 @@
 //!
 //! The lexer breaks source code into tokens for parsing.
 
-use miette::{IntoDiagnostic, Result};
+use miette::Result;
 use std::iter::Peekable;
 use std::str::Chars;
 

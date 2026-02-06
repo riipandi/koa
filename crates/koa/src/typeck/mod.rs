@@ -3,7 +3,7 @@
 //! The type checker ensures that all expressions and statements have correct types.
 
 use crate::ast::*;
-use miette::{IntoDiagnostic, Result};
+use miette::Result;
 
 /// Type checker for Koa
 pub struct TypeChecker {

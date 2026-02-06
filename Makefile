@@ -62,11 +62,17 @@ version:
 
 # Install CLI to ~/.local/bin (for development)
 install:
-	cargo install --path crates/koa-cli
+	cargo build --release -p koa-cli
+	mkdir -p ~/.local/bin
+	cp -f target/release/koa ~/.local/bin/koa
+	chmod +x ~/.local/bin/koa
 
 # Install in release mode
 install-release:
-	cargo install --path crates/koa-cli --release
+	cargo build --release -p koa-cli
+	mkdir -p ~/.local/bin
+	cp -f target/release/koa ~/.local/bin/koa
+	chmod +x ~/.local/bin/koa
 
 # Clean build artifacts
 clean:
