@@ -4,10 +4,12 @@ use std::process;
 
 mod commands;
 
+include!(concat!(env!("OUT_DIR"), "/version.rs"));
+
 #[derive(Parser)]
 #[command(name = "koa")]
 #[command(about = "The Koa Programming Language Compiler & Toolchain", long_about = None)]
-#[command(version)]
+#[command(version = VERSION)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
