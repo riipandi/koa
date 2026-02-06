@@ -331,6 +331,9 @@ impl TypeChecker {
             Expression::Identifier(name) => {
                 if let Some(sym) = self.resolve_symbol(name) {
                     Ok(sym.type_.clone())
+                } else if let Some(fn_decl) = self.functions.get(name).cloned() {
+                    let params = fn_decl.params.iter().map(|p| p.type_annotation.clone()).collect();
+                    Ok(Type::Function(params, Box::new(fn_decl.return_type.clone())))
                 } else {
                     Err(miette::miette!("Undefined identifier: {}", name))
                 }
@@ -343,15 +346,28 @@ impl TypeChecker {
                         if let Some(field) = s.fields.iter().find(|f| f.name == member_expr.property) {
                             return Ok(field.type_.clone());
                         }
-                        // Check methods
+                        // Check methods in struct
                         if let Some(method) = s.methods.iter().find(|m| m.name == member_expr.property) {
-                            // TODO: Return a proper Function type
-                            return Ok(method.return_type.clone());
+                            let params = method.params.iter().map(|p| p.type_annotation.clone()).collect();
+                            return Ok(Type::Function(params, Box::new(method.return_type.clone())));
                         }
-                        return Err(miette::miette!("Struct '{}' has no member '{}'", struct_name, member_expr.property));
                     }
                 }
-                Ok(Type::Void)
+                
+                // Check top-level functions for method-like signature: fn foo(self: T, ...)
+                if let Some(fn_decl) = self.functions.get(&member_expr.property).cloned() {
+                    if !fn_decl.params.is_empty() && fn_decl.params[0].name == "self" {
+                        if self.is_assignable(&obj_type, &fn_decl.params[0].type_annotation) {
+                            let params = fn_decl.params.iter().map(|p| p.type_annotation.clone()).collect();
+                            return Ok(Type::Function(params, Box::new(fn_decl.return_type.clone())));
+                        }
+                    }
+                }
+
+                if let Type::Named(struct_name) = &obj_type {
+                    return Err(miette::miette!("Struct '{}' has no member or method '{}'", struct_name, member_expr.property));
+                }
+                Err(miette::miette!("Type {:?} has no member '{}'", obj_type, member_expr.property))
             }
             Expression::Index(index_expr) => {
                 let obj_type = self.check_expression(&index_expr.object)?;
@@ -415,8 +431,22 @@ impl TypeChecker {
                 Ok(Type::Tuple(types))
             }
             Expression::Struct(struct_expr) => {
-                for field in &struct_expr.fields {
-                    self.check_expression(&field.value)?;
+                if let Some(s) = self.structs.get(&struct_expr.name).cloned() {
+                    for field_decl in &s.fields {
+                        if !struct_expr.fields.iter().any(|f| f.name == field_decl.name) {
+                            return Err(miette::miette!("Missing field '{}' in initializer for struct '{}'", field_decl.name, struct_expr.name));
+                        }
+                    }
+                    for field in &struct_expr.fields {
+                        let decl = s.fields.iter().find(|f| f.name == field.name)
+                            .ok_or_else(|| miette::miette!("No such field '{}' in struct '{}'", field.name, struct_expr.name))?;
+                        let val_type = self.check_expression(&field.value)?;
+                        if !self.is_assignable(&val_type, &decl.type_) {
+                            return Err(miette::miette!("Type mismatch for field '{}' in struct '{}': expected {:?}, found {:?}", field.name, struct_expr.name, decl.type_, val_type));
+                        }
+                    }
+                } else {
+                    return Err(miette::miette!("Undefined struct '{}'", struct_expr.name));
                 }
                 Ok(Type::Named(struct_expr.name.clone()))
             }
@@ -460,36 +490,92 @@ impl TypeChecker {
     }
 
     fn check_call_expr(&mut self, call_expr: &CallExpr) -> Result<Type> {
+        let callee = &*call_expr.callee;
+        
+        // Special case: Method call p.method(args)
+        if let Expression::Member(member_expr) = callee {
+            let obj_type = self.check_expression(&member_expr.object)?;
+            if let Type::Named(struct_name) = &obj_type {
+                if let Some(s) = self.structs.get(struct_name).cloned() {
+                    if let Some(method) = s.methods.iter().find(|m| m.name == member_expr.property) {
+                        if method.params.is_empty() {
+                            return Err(miette::miette!("Method {} must have a self parameter", method.name));
+                        }
+                        let self_type = &method.params[0].type_annotation;
+                        if !self.is_assignable(&obj_type, self_type) {
+                            return Err(miette::miette!("Cannot call method {} on type {:?}", method.name, obj_type));
+                        }
+                        
+                        if method.params.len() - 1 != call_expr.args.len() {
+                            return Err(miette::miette!("Method '{}' expects {} arguments, but {} were provided", method.name, method.params.len() - 1, call_expr.args.len()));
+                        }
+                        
+                        for (i, arg) in call_expr.args.iter().enumerate() {
+                            let arg_type = self.check_expression(arg)?;
+                            let expected = &method.params[i + 1].type_annotation;
+                            if !self.is_assignable(&arg_type, expected) {
+                                return Err(miette::miette!("Argument {} to method '{}' has type {:?}, but expected {:?}", i, method.name, arg_type, expected));
+                            }
+                        }
+                        return Ok(method.return_type.clone());
+                    }
+                }
+
+                // Check top-level functions for method-like signature: fn foo(self: T, ...)
+                if let Some(fn_decl) = self.functions.get(&member_expr.property).cloned() {
+                    if !fn_decl.params.is_empty() && fn_decl.params[0].name == "self" {
+                        if self.is_assignable(&obj_type, &fn_decl.params[0].type_annotation) {
+                            if fn_decl.params.len() - 1 != call_expr.args.len() {
+                                return Err(miette::miette!("Method '{}' expects {} arguments, but {} were provided", fn_decl.name, fn_decl.params.len() - 1, call_expr.args.len()));
+                            }
+                            
+                            for (i, arg) in call_expr.args.iter().enumerate() {
+                                let arg_type = self.check_expression(arg)?;
+                                let expected = &fn_decl.params[i + 1].type_annotation;
+                                if !self.is_assignable(&arg_type, expected) {
+                                    return Err(miette::miette!("Argument {} to method '{}' has type {:?}, but expected {:?}", i, fn_decl.name, arg_type, expected));
+                                }
+                            }
+                            return Ok(fn_decl.return_type.clone());
+                        }
+                    }
+                }
+            }
+        }
+
         let callee_type = self.check_expression(&call_expr.callee)?;
         
-        // If callee is an identifier, we can check its signature if it's a known function
-        if let Expression::Identifier(name) = &*call_expr.callee {
+        if let Type::Function(params, ret) = callee_type {
+            if params.len() != call_expr.args.len() {
+                return Err(miette::miette!("Expected {} arguments, but found {}", params.len(), call_expr.args.len()));
+            }
+            for (i, arg) in call_expr.args.iter().enumerate() {
+                let arg_type = self.check_expression(arg)?;
+                if !self.is_assignable(&arg_type, &params[i]) {
+                    return Err(miette::miette!("Argument {} type mismatch: expected {:?}, found {:?}", i, params[i], arg_type));
+                }
+            }
+            return Ok(*ret);
+        }
+
+        // Handle case where callee is an identifier for a known function
+        if let Expression::Identifier(name) = callee {
             if let Some(fn_decl) = self.functions.get(name).cloned() {
                 if fn_decl.params.len() != call_expr.args.len() {
-                    return Err(miette::miette!(
-                        "Function '{}' expects {} arguments, but {} were provided",
-                        name, fn_decl.params.len(), call_expr.args.len()
-                    ));
+                    return Err(miette::miette!("Function '{}' expects {} arguments, but {} were provided", name, fn_decl.params.len(), call_expr.args.len()));
                 }
                 for (i, arg) in call_expr.args.iter().enumerate() {
                     let arg_type = self.check_expression(arg)?;
                     let expected = &fn_decl.params[i].type_annotation;
                     if !self.is_assignable(&arg_type, expected) {
-                        return Err(miette::miette!(
-                            "Argument {} to function '{}' has type {:?}, but expected {:?}",
-                            i, name, arg_type, expected
-                        ));
+                        return Err(miette::miette!("Argument {} to function '{}' has type {:?}, but expected {:?}", i, name, arg_type, expected));
                     }
                 }
                 return Ok(fn_decl.return_type.clone());
             }
         }
         
-        // Basic check for non-identifier callees or unknown functions
-        for arg in &call_expr.args {
-            self.check_expression(arg)?;
-        }
-        Ok(callee_type)
+        Err(miette::miette!("Cannot call non-function type {:?}", callee_type))
     }
 
     fn is_assignable(&self, from: &Type, to: &Type) -> bool {

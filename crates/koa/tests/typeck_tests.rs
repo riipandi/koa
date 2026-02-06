@@ -63,7 +63,7 @@ fn test_typeck_struct_undefined_member() {
     ";
     let result = check(source);
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Struct 'Point' has no member 'z'"));
+    assert!(result.unwrap_err().to_string().contains("Struct 'Point' has no member or method 'z'"));
 }
 
 #[test]
@@ -112,4 +112,46 @@ fn test_typeck_unary_mismatch() {
     let result = check("fn test(): void { let x = !10; }");
     assert!(result.is_err());
     assert!(result.unwrap_err().to_string().contains("Logical NOT operator '!' requires a boolean type"));
+}
+
+#[test]
+fn test_typeck_method_call() {
+    let source = "
+        struct Point { x: i32; y: i32; }
+        fn get_x(self: Point): i32 { return self.x; }
+        fn test(): i32 {
+            let p = Point { x: 10, y: 20 };
+            return p.get_x();
+        }
+    ";
+    let result = check(source);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_typeck_method_call_args() {
+    let source = "
+        struct Point { x: i32; y: i32; }
+        fn scale(self: Point, factor: i32): i32 { return self.x * factor; }
+        fn test(): i32 {
+            let p = Point { x: 10, y: 20 };
+            return p.scale(\"wrong\");
+        }
+    ";
+    let result = check(source);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Argument 0 to method 'scale' has type String, but expected I32"));
+}
+
+#[test]
+fn test_typeck_struct_literal_fields() {
+    let source = "
+        struct Point { x: i32; y: i32; }
+        fn test(): void {
+            let p = Point { x: 10 }; // Missing y
+        }
+    ";
+    let result = check(source);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Missing field 'y' in initializer for struct 'Point'"));
 }

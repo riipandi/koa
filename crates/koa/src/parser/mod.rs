@@ -634,7 +634,7 @@ impl Parser {
                 self.consume_token(TokenKind::RBracket)?;
                 Ok(Expression::Array(ArrayExpr { elements, span }))
             }
-            Some(TokenKind::Ident) => {
+            Some(TokenKind::Ident) | Some(TokenKind::SelfValue) | Some(TokenKind::SelfType) => {
                 let name_token = self.advance();
                 let name = name_token.literal.clone().unwrap_or_default();
                 let name_span = name_token.span;
@@ -705,10 +705,10 @@ impl Parser {
 
     fn consume_identifier(&mut self) -> Result<String> {
         let t = self.advance();
-        if t.kind == TokenKind::Ident {
+        if t.kind == TokenKind::Ident || t.kind == TokenKind::SelfValue || t.kind == TokenKind::SelfType {
             Ok(t.literal.clone().unwrap_or_default())
         } else {
-            Err(miette::miette!("Expected identifier"))
+            Err(miette::miette!("Expected identifier, but found {:?}", t.kind))
         }
     }
 

@@ -229,6 +229,8 @@ impl<'input> Lexer<'input> {
             || kind == TokenKind::StringLiteral
             || kind == TokenKind::IntLiteral
             || kind == TokenKind::FloatLiteral
+            || kind == TokenKind::SelfValue
+            || kind == TokenKind::SelfType
         {
             Some(self.input[start..end].to_string())
         } else {
