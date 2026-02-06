@@ -1020,13 +1020,11 @@ impl TypeChecker {
                     .cloned()
                     .ok_or_else(|| miette::miette!("Undefined interface '{}'", interface_name))?;
 
-                // If it's a struct, check its methods
                 if let Some(s) = self.structs.get(type_name).cloned() {
                     for iface_method in &iface.methods {
                         let struct_method = s.methods.iter().find(|m| m.name == iface_method.name)
                             .ok_or_else(|| miette::miette!("Type '{}' does not implement method '{}' required by interface '{}'", type_name, iface_method.name, interface_name))?;
 
-                        // Check signature match
                         if struct_method.params.len() != iface_method.params.len() {
                             return Err(miette::miette!(
                                 "Method '{}' in type '{}' has {} parameters, but interface '{}' expects {}",
@@ -1037,8 +1035,46 @@ impl TypeChecker {
                                 iface_method.params.len()
                             ));
                         }
-                        // Note: For now we don't check exact types as it might require self-substitution, but at least names/counts should match.
-                        // Ideally we should check if is_assignable(struct_method_sig, iface_method_sig)
+
+                        for (i, (iface_param, struct_param)) in iface_method
+                            .params
+                            .iter()
+                            .zip(struct_method.params.iter())
+                            .enumerate()
+                        {
+                            if iface_param.name == "self" {
+                                continue;
+                            }
+
+                            let iface_param_type = &iface_param.type_annotation;
+                            let struct_param_type = &struct_param.type_annotation;
+
+                            if !self.is_assignable(struct_param_type, iface_param_type) {
+                                return Err(miette::miette!(
+                                    "Method '{}' in type '{}' has parameter {} with type {:?}, but interface '{}' expects {:?}",
+                                    iface_method.name,
+                                    type_name,
+                                    i,
+                                    struct_param_type,
+                                    interface_name,
+                                    iface_param_type
+                                ));
+                            }
+                        }
+
+                        let iface_return_type = &iface_method.return_type;
+                        let struct_return_type = &struct_method.return_type;
+
+                        if !self.is_assignable(struct_return_type, iface_return_type) {
+                            return Err(miette::miette!(
+                                "Method '{}' in type '{}' returns {:?}, but interface '{}' expects {:?}",
+                                iface_method.name,
+                                type_name,
+                                struct_return_type,
+                                interface_name,
+                                iface_return_type
+                            ));
+                        }
                     }
                     Ok(())
                 } else {

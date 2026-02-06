@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Enhanced Interface Checking (2026-02-07)
+
+#### Type Checker
+- Enhanced `satisfies_interface()` to validate parameter types
+- Return type checking for interface methods
+- Proper type comparison with `is_assignable()` for all parameters
+- Skips `self` parameter in type checking (already validated by method presence)
+- Comprehensive error messages with parameter index and type details
+
+#### Testing
+- Added test_interface_parameter_type_mismatch - verifies parameter type validation
+- Added test_interface_return_type_mismatch - verifies return type validation
+- Added test_interface_with_multiple_parameters - verifies multi-parameter methods
+- Added test_interface_parameter_count_mismatch - verifies parameter count validation
+- Total test suite: 70 tests passing (up from 63)
+
+#### Bug Fixes
+- Fixed incomplete interface satisfaction checking that only validated parameter counts
+- Now validates actual parameter and return types against interface requirements
+
+#### Example
+```koa
+interface Processor {
+    fn process(self, value: i32): void;
+}
+
+struct DataHandler {
+    fn process(self, value: f64): void { return; }
+}
+
+fn handle<T: Processor>(p: T): void { return; }
+
+fn main(): void {
+    let h = DataHandler { };
+    handle<DataHandler>(h);  // ❌ ERROR: Parameter type mismatch
+}
+```
+
 ### Added - Type Inference (2026-02-07)
 
 #### Type Checker
