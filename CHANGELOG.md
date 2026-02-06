@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - LLVM Codegen Integration (2026-02-07)
+
+#### LLVM Code Generator
+- Type tracking for local variables and temporaries
+- Proper type-aware load instructions (fixes float/int bug)
+- Support for specialized generic functions in LLVM IR
+- Support for generic struct instantiation
+
+#### Testing
+- Added test_generic_function_llvm - verifies generic function compilation
+- Added test_generic_struct_llvm - verifies generic struct compilation
+- Added test_multiple_generic_instantiations - verifies multiple specializations
+- Added test_generic_with_constraints - verifies interface constraints
+- Added test_debug_ir_output - for debugging IR output
+- Total test suite: 48 tests passing (up from 40)
+
+#### Bug Fixes
+- Fixed hardcoded i32 type in load instructions
+- Fixed missing type tracking for parameters
+- Fixed generic struct instantiation in IR lowering
+
 ### Added - Phase 2: Generics & Interfaces (2026-02-07)
 
 #### Parser

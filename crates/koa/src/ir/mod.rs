@@ -275,7 +275,7 @@ impl IrLowerer {
         }
 
         // Add specialized functions
-        functions.extend(self.specialized_functions.drain(..));
+        functions.append(&mut self.specialized_functions);
         // Add specialized structs
         for (name, ty) in self.specialized_structs.drain() {
             types.insert(name, ty);
@@ -322,7 +322,7 @@ impl IrLowerer {
         }
 
         let return_type = self.lower_type(&fn_decl.return_type)?;
-        
+
         // Entry block
         let entry_label = format!("entry_{}", self.block_count);
         self.block_count += 1;
@@ -331,9 +331,20 @@ impl IrLowerer {
 
         // Ensure last block has a return if it's void and not terminated
         if return_type == IrType::Void {
-            let has_terminator = self.blocks.last().map_or(false, |b| {
-                b.instructions.last().map_or(false, |i| matches!(i, IrInstruction::Return { .. } | IrInstruction::Jump { .. } | IrInstruction::Branch { .. }))
-            });
+            let has_terminator = if let Some(b) = self.blocks.last() {
+                if let Some(i) = b.instructions.last() {
+                    matches!(
+                        i,
+                        IrInstruction::Return { .. }
+                            | IrInstruction::Jump { .. }
+                            | IrInstruction::Branch { .. }
+                    )
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
             if !has_terminator {
                 self.add_instr(IrInstruction::Return { value: None });
             }
@@ -408,7 +419,7 @@ impl IrLowerer {
             }
             Statement::If(if_stmt) => {
                 let cond = self.lower_expression(&if_stmt.condition)?;
-                
+
                 let then_label = format!("if_then_{}", self.block_count);
                 let else_label = format!("if_else_{}", self.block_count);
                 let merge_label = format!("if_merge_{}", self.block_count);
@@ -417,19 +428,27 @@ impl IrLowerer {
                 self.add_instr(IrInstruction::Branch {
                     condition: cond,
                     true_block: then_label.clone(),
-                    false_block: if if_stmt.else_block.is_some() { else_label.clone() } else { merge_label.clone() },
+                    false_block: if if_stmt.else_block.is_some() {
+                        else_label.clone()
+                    } else {
+                        merge_label.clone()
+                    },
                 });
 
                 // Then
                 self.add_block(then_label);
                 self.lower_block(&if_stmt.then_block)?;
-                self.add_instr(IrInstruction::Jump { target: merge_label.clone() });
+                self.add_instr(IrInstruction::Jump {
+                    target: merge_label.clone(),
+                });
 
                 // Else
                 if let Some(else_block) = &if_stmt.else_block {
                     self.add_block(else_label);
                     self.lower_block(else_block)?;
-                    self.add_instr(IrInstruction::Jump { target: merge_label.clone() });
+                    self.add_instr(IrInstruction::Jump {
+                        target: merge_label.clone(),
+                    });
                 }
 
                 // Merge
@@ -441,7 +460,9 @@ impl IrLowerer {
                 let end_label = format!("while_end_{}", self.block_count);
                 self.block_count += 1;
 
-                self.add_instr(IrInstruction::Jump { target: cond_label.clone() });
+                self.add_instr(IrInstruction::Jump {
+                    target: cond_label.clone(),
+                });
 
                 // Condition
                 self.add_block(cond_label.clone());
@@ -453,7 +474,8 @@ impl IrLowerer {
                 });
 
                 // Body
-                self.loop_stack.push((cond_label.clone(), end_label.clone()));
+                self.loop_stack
+                    .push((cond_label.clone(), end_label.clone()));
                 self.add_block(body_label);
                 self.lower_block(&while_stmt.body)?;
                 self.add_instr(IrInstruction::Jump { target: cond_label });
@@ -467,10 +489,13 @@ impl IrLowerer {
                 let end_label = format!("loop_end_{}", self.block_count);
                 self.block_count += 1;
 
-                self.add_instr(IrInstruction::Jump { target: body_label.clone() });
+                self.add_instr(IrInstruction::Jump {
+                    target: body_label.clone(),
+                });
 
                 // Body
-                self.loop_stack.push((body_label.clone(), end_label.clone()));
+                self.loop_stack
+                    .push((body_label.clone(), end_label.clone()));
                 self.add_block(body_label.clone());
                 self.lower_block(&loop_stmt.body)?;
                 self.add_instr(IrInstruction::Jump { target: body_label });
@@ -509,7 +534,7 @@ impl IrLowerer {
                 let left = self.lower_expression(&binary_expr.left)?;
                 let right = self.lower_expression(&binary_expr.right)?;
                 let dest = self.new_temp();
-                
+
                 if let Some(op) = self.get_cmp_op(binary_expr.op) {
                     self.add_instr(IrInstruction::Cmp {
                         op,
@@ -548,7 +573,7 @@ impl IrLowerer {
                 for arg in &call_expr.args {
                     args.push(self.lower_expression(arg)?);
                 }
-                
+
                 let callee = match &*call_expr.callee {
                     Expression::Identifier(name) => {
                         // Trigger specialization!
@@ -557,7 +582,7 @@ impl IrLowerer {
                     Expression::Member(m) => m.property.clone(),
                     _ => return Err(miette::miette!("Expected function name")),
                 };
-                
+
                 let dest = self.new_temp();
                 self.add_instr(IrInstruction::Call {
                     callee,
@@ -569,14 +594,14 @@ impl IrLowerer {
             Expression::Member(member_expr) => {
                 let base = self.lower_expression(&member_expr.object)?;
                 let dest = self.new_temp();
-                
+
                 // Simplified field access
                 self.add_instr(IrInstruction::GEP {
                     base,
                     indices: vec![0], // Placeholder
                     dest: dest.clone(),
                 });
-                
+
                 let load_dest = self.new_temp();
                 self.add_instr(IrInstruction::Load {
                     src: IrOperand::Temp(dest),
@@ -585,20 +610,26 @@ impl IrLowerer {
                 Ok(IrOperand::Temp(load_dest))
             }
             Expression::Struct(struct_expr) => {
-                // Trigger struct specialization
-                self.specialize_struct(&struct_expr.name, struct_expr.type_args.as_ref())?;
+                // Trigger struct specialization and get the type
+                let struct_type =
+                    self.specialize_struct(&struct_expr.name, struct_expr.type_args.as_ref())?;
 
-                let mut field_values = Vec::new();
+                // For now, just evaluate field expressions for side effects
+                // and return a placeholder
                 for field in &struct_expr.fields {
-                    field_values.push(self.lower_expression(&field.value)?);
+                    self.lower_expression(&field.value)?;
                 }
 
-                let dest = self.new_temp();
-                Ok(IrOperand::Temp(dest))
+                // Allocate local variable for struct (simplified)
+                let local_name = self.new_temp();
+                self.add_instr(IrInstruction::Alloca {
+                    name: local_name.clone(),
+                    type_: struct_type,
+                });
+
+                Ok(IrOperand::Local(local_name))
             }
-            _ => {
-                Ok(IrOperand::Constant(IrConstant::Unit))
-            }
+            _ => Ok(IrOperand::Constant(IrConstant::Unit)),
         }
     }
 
@@ -694,7 +725,8 @@ impl IrLowerer {
         if type_args.is_empty() {
             return name.to_string();
         }
-        let args_str = type_args.iter()
+        let args_str = type_args
+            .iter()
             .map(|t| format!("{:?}", t))
             .collect::<Vec<_>>()
             .join("_")
@@ -727,7 +759,9 @@ impl IrLowerer {
             Type::Pointer(inner) => Type::Pointer(Box::new(self.substitute_type(inner))),
             Type::Array(inner) => Type::Array(Box::new(self.substitute_type(inner))),
             Type::Optional(inner) => Type::Optional(Box::new(self.substitute_type(inner))),
-            Type::ErrorUnion(err, val) => Type::ErrorUnion(err.clone(), Box::new(self.substitute_type(val))),
+            Type::ErrorUnion(err, val) => {
+                Type::ErrorUnion(err.clone(), Box::new(self.substitute_type(val)))
+            }
             Type::Tuple(ts) => Type::Tuple(ts.iter().map(|t| self.substitute_type(t)).collect()),
             Type::Function(ps, rs) => {
                 let new_ps = ps.iter().map(|p| self.substitute_type(p)).collect();
@@ -740,14 +774,19 @@ impl IrLowerer {
     fn specialize_fn(&mut self, name: &str, type_args: Option<&Vec<Type>>) -> Result<String> {
         let actual_type_args = type_args.map(|v| v.as_slice()).unwrap_or(&[]);
         let spec_name = self.specialize_fn_name(name, actual_type_args);
-        
+
         if self.specialized_function_names.contains(&spec_name) {
             return Ok(spec_name);
         }
 
         if let Some(f) = self.fn_map.get(name).cloned() {
             if f.type_params.len() != actual_type_args.len() {
-                 return Err(miette::miette!("Function '{}' expects {} type arguments, but {} were provided", name, f.type_params.len(), actual_type_args.len()));
+                return Err(miette::miette!(
+                    "Function '{}' expects {} type arguments, but {} were provided",
+                    name,
+                    f.type_params.len(),
+                    actual_type_args.len()
+                ));
             }
 
             // Mark as specialized to avoid recursion
@@ -761,7 +800,8 @@ impl IrLowerer {
 
             // Set up new substitution
             for (i, param) in f.type_params.iter().enumerate() {
-                self.type_substitution.insert(param.name.clone(), actual_type_args[i].clone());
+                self.type_substitution
+                    .insert(param.name.clone(), actual_type_args[i].clone());
             }
 
             // Lower specialized function
@@ -793,7 +833,8 @@ impl IrLowerer {
                 let old_sub = self.type_substitution.clone();
                 // Set up new substitution for fields
                 for (i, param) in s.type_params.iter().enumerate() {
-                    self.type_substitution.insert(param.name.clone(), args[i].clone());
+                    self.type_substitution
+                        .insert(param.name.clone(), args[i].clone());
                 }
 
                 let mut fields = Vec::new();
@@ -811,11 +852,14 @@ impl IrLowerer {
 
         if let Some(s) = self.struct_map.get(name).cloned() {
             if !s.type_params.is_empty() {
-                return Err(miette::miette!("Generic struct '{}' requires type arguments", name));
+                return Err(miette::miette!(
+                    "Generic struct '{}' requires type arguments",
+                    name
+                ));
             }
             return self.lower_struct_decl(&s);
         }
-        
+
         // Final fallback (placeholder logic from before)
         Ok(IrType::Int32)
     }
