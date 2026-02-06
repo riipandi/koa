@@ -93,6 +93,8 @@ fn example() -> Result<()> {
 - Include Examples sections where applicable
 - Document Errors and Panics sections for functions
 - Keep docs concise but informative
+- **All documentation and code comments MUST be in English**
+- Progress notes should be as concise as possible
 
 **Testing**:
 - Name tests descriptively: `test_<feature>_<scenario>` or `test_<what>`
@@ -224,7 +226,6 @@ docs/                   # Documentation
 - **Comment handling**: Lexer now properly skips `//`, `///`, `//!`, and `/* */` comments
 - **LLVM version**: Using inkwell 0.6 with LLVM 17
 - **Workspace dependencies**: Defined in root `Cargo.toml`
-- **CLI install path**: `~/.local/bin/koa` (not `~/.cargo/bin`)
 - **Testing**: All tests pass, use `cargo test -p koa` for compiler tests
 - **Parser grammar**: Hand-written recursive descent (not using lalrpop yet)
 
@@ -235,3 +236,44 @@ docs/                   # Documentation
 3. Look at test cases for usage examples
 4. Follow the established patterns in similar modules
 5. When in doubt, ask: What would rustc/rust-analyzer do?
+
+## Documentation Guidelines
+
+**DO NOT** create separate markdown files for progress reports or summaries.
+
+**Use these files for documentation**:
+
+1. **`docs/SUMMARY.md`** - Overall project status and milestones
+   - Update implementation status
+   - Track milestone progress
+   - Add recent updates section
+
+2. **`CHANGELOG.md`** - Detailed change tracking
+   - Follow [Keep a Changelog](https://keepachangelog.com/) format
+   - Document all Added/Changed/Fixed/Removed items
+   - Include version numbers and dates
+
+3. **`KNOWN_ISSUES.md`** - Track bugs and issues
+   - Document all discovered issues with descriptions
+   - Mark fixed issues with (FIXED ✓) and move to "Fixed Issues" section
+   - Keep outstanding issues in "Outstanding Issues" section
+   - Include workarounds when available
+
+4. **`docs/*.md`** - Feature-specific documentation
+   - `docs/03-type-system.md` - Type system features
+   - `docs/10-implementation-plan.md` - Implementation roadmap
+   - Update existing docs, don't create new ones
+
+**Examples of what NOT to do**:
+- ❌ `docs/PHASE2_SUMMARY.md`
+- ❌ `docs/NEXT_STEPS.md`
+- ❌ `docs/PROGRESS_REPORT.md`
+- ❌ Any standalone progress/summary documents
+
+**Where to document**:
+- ✅ Progress updates → `docs/SUMMARY.md` (Recent Updates section)
+- ✅ Changes → `CHANGELOG.md` (Unreleased section)
+- ✅ Issues found → `KNOWN_ISSUES.md` (Outstanding Issues section)
+- ✅ Implementation details → Update existing `docs/*.md` files
+- ✅ Next steps → `docs/10-implementation-plan.md` (Next Steps section)
+
