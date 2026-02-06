@@ -12,3 +12,9 @@ koa = { path = "../koa" }
 miette.workspace = true
 clap.workspace = true
 anyhow.workspace = true
+indicatif = "0.17"
+console = "0.15"
+tokio = { version = "1.35", features = ["full"] }
+toml = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

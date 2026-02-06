@@ -70,45 +70,100 @@ checksum = "sha256:..."
 
 ## Commands
 
-### koa fetch
+All package management commands are under the `pkg` subcommand:
+
+### koa pkg fetch
 
 Download dependencies:
 
 ```bash
-# Download semua dependencies
-koa fetch
+# Download all dependencies
+koa pkg fetch
 
 # Output:
-# Fetching http@0.1.0 from https://github.com/riipandi/koa-http
-# Fetching json@main from https://github.com/riipandi/koa-json
-# Updated Koa.lock
+# ⠋ Fetching dependencies...
+# ✓ Dependencies fetched
 ```
 
-### koa build
+### koa pkg add
 
-Build with dependencies:
+Add a new dependency to `Koa.toml`:
 
 ```bash
-koa build
+# Add with version
+koa pkg add http@0.1.0 --git https://github.com/riipandi/koa-http
 
-# Automatically fetch dependencies if not available
-# Uses lockfile for reproducibility
+# Add with git URL and version separately
+koa pkg add json --git https://github.com/riipandi/koa-json --version "^0.1.0"
+
+# Add local path dependency
+koa pkg add utils --path ./utils
+
+# Add with branch
+koa pkg add auth --git https://github.com/user/koa-auth --branch main
 ```
 
-### koa update
+### koa pkg remove
+
+Remove a dependency from `Koa.toml`:
+
+```bash
+koa pkg remove http
+```
+
+### koa pkg list
+
+List installed dependencies:
+
+```bash
+koa pkg list
+
+# Output:
+# Dependencies (3)
+#   http  v0.1.0  git+https://github.com/riipandi/koa-http
+#   json  v0.1.0  git+https://github.com/riipandi/koa-json
+#   utils v0.1.0  path+./utils
+```
+
+### koa pkg tree
+
+Show dependency tree:
+
+```bash
+koa pkg tree
+
+# Output:
+# myapp v0.1.0
+# └── http v0.1.0
+#     └── json v0.1.0
+```
+
+### koa pkg outdated
+
+Check for outdated dependencies:
+
+```bash
+koa pkg outdated
+
+# Output:
+# Checking for outdated dependencies...
+# ✓ All dependencies are up to date
+```
+
+### koa pkg update
 
 Update dependencies:
 
 ```bash
-# Update semua dependencies
-koa update
+# Update all dependencies
+koa pkg update
 
 # Update specific dependency
-koa update http
+koa pkg update http
 
 # Output:
-# Updating http@0.1.0 -> 0.2.0
-# Updated Koa.lock
+# ⠋ Updating http...
+# ✓ Dependencies updated
 ```
 
 ---
@@ -288,21 +343,14 @@ checksum = "sha256:a1b2c3d4..."
 
 ```bash
 # Create new project
-koa new myproject
+koa init myproject
 cd myproject
 
-# Edit Koa.toml
-cat > Koa.toml << EOF
-[package]
-name = "myproject"
-version = "0.1.0"
-
-[dependencies]
-http = { git = "https://github.com/riipandi/koa-http", version = "0.1.0" }
-EOF
+# Add dependency
+koa pkg add http --git https://github.com/riipandi/koa-http --version 0.1.0
 
 # Fetch dependencies
-koa fetch
+koa pkg fetch
 
 # Build
 koa build
@@ -311,14 +359,21 @@ koa build
 ### Add Dependency
 
 ```bash
-# Edit Koa.toml
-# Add: mydep = { git = "https://github.com/user/mydep", version = "1.0.0" }
+# Add dependency (auto-edits Koa.toml)
+koa pkg add mydep --git https://github.com/user/mydep --version 1.0.0
 
-# Fetch
-koa fetch
+# Fetch dependencies
+koa pkg fetch
 
 # Use in code
 # import { Something } from "mydep/module"
+```
+
+### Remove Dependency
+
+```bash
+# Remove dependency (auto-edits Koa.toml)
+koa pkg remove mydep
 ```
 
 ### Update Dependency
@@ -396,13 +451,15 @@ koa build --offline
 
 ## Comparison
 
-| Feature        | Go                 | Zig         | Koa          |
-|----------------|--------------------|-------------|--------------|
-| **Built-in**   | ✅ go get           | ✅ zig fetch | ✅ koa fetch  |
-| **Registry**   | go.sum (checksums) | No registry | No registry  |
-| **Lockfile**   | go.sum             | zig.cache   | Koa.lock     |
-| **Git-based**  | ✅                  | ✅           | ✅            |
-| **Versioning** | SemVer             | Commit SHA  | SemVer + SHA |
+| Feature        | Go                 | Zig           | Koa                |
+|----------------|--------------------|---------------|--------------------|
+| **Built-in**   | ✅ go get           | ✅ zig fetch  | ✅ koa pkg fetch    |
+| **Add/Remove** | ❌ (manual edit)    | ❌ (manual)   | ✅ koa pkg add/rm   |
+| **List**       | go list            | ❌            | ✅ koa pkg list     |
+| **Registry**   | go.sum (checksums) | No registry   | No registry        |
+| **Lockfile**   | go.sum             | zig.cache     | Koa.lock           |
+| **Git-based**  | ✅                  | ✅            | ✅                 |
+| **Versioning** | SemVer             | Commit SHA    | SemVer + SHA       |
 
 ---
 
@@ -428,7 +485,7 @@ http = { git = "...", version = "^0.1.0" }  # Predictable updates
 ### 3. Update Regularly
 
 ```bash
-koa update  # Get latest compatible versions
+koa pkg update  # Get latest compatible versions
 ```
 
 ### 4. Review Changes
