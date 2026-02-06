@@ -1,0 +1,17 @@
+[package]
+name = "koa"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+# Workspace dependencies
+inkwell.workspace = true
+lalrpop-util.workspace = true
+miette.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+
+[build-dependencies]
+lalrpop = "0.20"

@@ -1,0 +1,14 @@
+[package]
+name = "koa-cli"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "koa"
+path = "src/main.rs"
+
+[dependencies]
+koa = { path = "../koa" }
+miette.workspace = true
+clap.workspace = true
+anyhow.workspace = true

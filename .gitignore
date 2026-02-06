@@ -1,0 +1,38 @@
+/.idea
+.DS_Store
+.DS_Store?
+/coverage
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+*.bak
+
+# SQLite
+*.sqlite*
+*.sqlite3*
+*.db
+
+# Output directory
+/build/
+/target/
+/temp
+/tmp
+.cache
+.temp
+.tmp
+
+# Envars
+.env.*
+!.env.example
+compose.env*
+!compose.env.example
+.*.vars
+
+# Miscelaneous
+/.notes

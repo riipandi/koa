@@ -1,0 +1,19 @@
+//! Koa Standard Library - Core
+//! 
+//! Basic types and utilities
+
+/// Print a line to stdout
+pub fn println(s: string): void {
+    // Implementation in runtime
+}
+
+/// Print to stdout
+pub fn print(s: string): void {
+    // Implementation in runtime
+}
+
+/// Get string length
+pub fn strlen(s: string): i32 {
+    // Implementation in runtime
+    0;
+}
