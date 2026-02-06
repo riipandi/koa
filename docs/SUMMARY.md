@@ -145,12 +145,13 @@ pub fn main(): i32 {
 - [x] Milestone 4: Semantic Analysis & Type Checker
 - [x] Milestone 5: Intermediate Representation (IR)
 - [x] Milestone 6: LLVM IR Generation (Basic implementation done)
+- [ ] Milestone 7: Generics & Interfaces (Implementation started)
 
 ### Planned
-- [ ] Milestone 7: Standard library
-- [ ] Milestone 8: Garbage collector
-- [ ] Milestone 9: Async/Await Runtime
-- [ ] Milestone 10: Toolchain refinement (REPL, LSP)
+- [ ] Milestone 8: Standard library
+- [ ] Milestone 9: Garbage collector
+- [ ] Milestone 10: Async/Await Runtime
+- [ ] Milestone 11: Toolchain refinement (REPL, LSP)
 
 ## License
 

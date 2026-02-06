@@ -61,30 +61,30 @@ fn main(): i32 {
 
 - ✅ Type parameters
 - ✅ **Interfaces** (Structural/Explicit)
-- ✅ Monomorphization
+- ⏳ Monomorphization (In Progress)
 - ✅ Generic functions
 - ✅ Generic structs
-- ✅ Type inference
+- ⏳ Type inference (Planned)
 
 ### Tasks
 
-**Month 1: Type Parameters & Interfaces**
-- Type parameter syntax
-- Interface definitions (`interface` keyword)
-- Generic constraint syntax (`T: Interface`)
+**Month 1: Type Parameters & Interfaces** (Done)
+- ✅ Type parameter syntax
+- ✅ Interface definitions (`interface` keyword)
+- ✅ Generic constraint syntax (`T: Interface`)
 
-**Month 2: Monomorphization**
-- Type instantiation
-- Code generation for generics
-- V-table generation (if needed for interfaces)
+**Month 2: Monomorphization** (Started)
+- ⏳ Type instantiation
+- ⏳ Code generation for generics
+- ⏳ V-table generation (if needed for interfaces)
 
-**Month 3: Type Inference**
-- Local type inference
-- Interface satisfaction check
+**Month 3: Type Inference** (Planned)
+- ⏳ Local type inference
+- ⏳ Interface satisfaction check
 
-**Month 4: Testing**
-- Unit tests
-- Integration tests
+**Month 4: Testing** (Ongoing)
+- ✅ Unit tests (Basic)
+- ⏳ Integration tests
 
 ### Example Output
 
@@ -532,7 +532,7 @@ The compiler automatically detects the target architecture:
 | Milestone           | Duration   | Deliverable       | Status      |
 |---------------------|------------|-------------------|-------------|
 | **M1: Hello World** | Week 1-6   | Basic executable  | ✅ Done      |
-| **M2: Generics**    | Week 7-14  | Full generics     | ⏳ Planned  |
+| **M2: Generics**    | Week 7-14  | Full generics     | 🏗️ In Progress |
 | **M3: Patterns**    | Week 15-20 | Pattern matching  | ⏳ Planned  |
 | **M4: GC**          | Week 21-30 | Working GC        | ⏳ Planned  |
 | **M5: Async**       | Week 31-40 | Async runtime     | ⏳ Planned  |

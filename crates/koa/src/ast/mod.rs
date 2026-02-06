@@ -16,6 +16,7 @@ pub enum Declaration {
     FnDecl(FnDecl),
     StructDecl(StructDecl),
     EnumDecl(EnumDecl),
+    InterfaceDecl(InterfaceDecl),
     ConstDecl(ConstDecl),
     ErrorDecl(ErrorDecl),
     ImportDecl(ImportDecl),
@@ -26,7 +27,7 @@ pub enum Declaration {
 #[derive(Debug, Clone)]
 pub struct FnDecl {
     pub name: String,
-    pub type_params: Vec<String>,
+    pub type_params: Vec<TypeParameter>,
     pub params: Vec<Param>,
     pub return_type: Type,
     pub body: Block,
@@ -285,6 +286,7 @@ pub enum Literal {
 #[derive(Debug, Clone)]
 pub struct CallExpr {
     pub callee: Box<Expression>,
+    pub type_args: Option<Vec<Type>>,
     pub args: Vec<Box<Expression>>,
     pub span: Span,
 }
@@ -340,6 +342,7 @@ pub struct TupleExpr {
 #[derive(Debug, Clone)]
 pub struct StructExpr {
     pub name: String,
+    pub type_args: Option<Vec<Type>>,
     pub fields: Vec<StructField>,
     pub span: Span,
 }
@@ -378,7 +381,7 @@ pub struct CastExpr {
 #[derive(Debug, Clone)]
 pub struct StructDecl {
     pub name: String,
-    pub type_params: Vec<String>,
+    pub type_params: Vec<TypeParameter>,
     pub fields: Vec<StructFieldDecl>,
     pub methods: Vec<FnDecl>,
     pub span: Span,
@@ -398,7 +401,7 @@ pub struct StructFieldDecl {
 #[derive(Debug, Clone)]
 pub struct EnumDecl {
     pub name: String,
-    pub type_params: Vec<String>,
+    pub type_params: Vec<TypeParameter>,
     pub variants: Vec<EnumVariant>,
     pub span: Span,
     pub is_pub: bool,
@@ -409,6 +412,33 @@ pub struct EnumDecl {
 pub struct EnumVariant {
     pub name: String,
     pub fields: Vec<Type>,
+    pub span: Span,
+}
+
+/// Interface declaration
+#[derive(Debug, Clone)]
+pub struct InterfaceDecl {
+    pub name: String,
+    pub type_params: Vec<TypeParameter>,
+    pub methods: Vec<InterfaceMethod>,
+    pub span: Span,
+    pub is_pub: bool,
+}
+
+/// Interface method signature
+#[derive(Debug, Clone)]
+pub struct InterfaceMethod {
+    pub name: String,
+    pub params: Vec<Param>,
+    pub return_type: Type,
+    pub span: Span,
+}
+
+/// Type parameter with optional constraints
+#[derive(Debug, Clone)]
+pub struct TypeParameter {
+    pub name: String,
+    pub constraints: Vec<Type>,
     pub span: Span,
 }
 

@@ -316,6 +316,7 @@ impl<'input> Lexer<'input> {
             "while" => TokenKind::While,
             "for" => TokenKind::For,
             "loop" => TokenKind::Loop,
+            "interface" => TokenKind::Interface,
             "match" => TokenKind::Match,
             "break" => TokenKind::Break,
             "continue" => TokenKind::Continue,

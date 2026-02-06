@@ -58,6 +58,7 @@ pub enum TokenKind {
     Loop,
     While,
     For,
+    Interface, // 'interface' keyword
     Return,
     Break,
     Continue,
@@ -152,6 +153,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Loop => "loop",
             TokenKind::While => "while",
             TokenKind::For => "for",
+            TokenKind::Interface => "interface",
             TokenKind::Return => "return",
             TokenKind::Break => "break",
             TokenKind::Continue => "continue",

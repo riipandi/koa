@@ -27,6 +27,7 @@ pub struct TypeChecker {
     current_fn_return_type: Option<Type>,
     structs: HashMap<String, StructDecl>,
     functions: HashMap<String, FnDecl>,
+    interfaces: HashMap<String, InterfaceDecl>,
 }
 
 impl TypeChecker {
@@ -36,6 +37,7 @@ impl TypeChecker {
             current_fn_return_type: None,
             structs: HashMap::new(),
             functions: HashMap::new(),
+            interfaces: HashMap::new(),
         }
     }
 
@@ -78,6 +80,7 @@ impl TypeChecker {
             Declaration::FnDecl(fn_decl) => self.check_fn_decl(fn_decl),
             Declaration::StructDecl(struct_decl) => self.check_struct_decl(struct_decl),
             Declaration::EnumDecl(enum_decl) => self.check_enum_decl(enum_decl),
+            Declaration::InterfaceDecl(interface_decl) => self.check_interface_decl(interface_decl),
             Declaration::ConstDecl(const_decl) => self.check_const_decl(const_decl),
             Declaration::ErrorDecl(error_decl) => self.check_error_decl(error_decl),
             Declaration::ImportDecl(import_decl) => self.check_import_decl(import_decl),
@@ -93,6 +96,11 @@ impl TypeChecker {
         self.functions.insert(fn_decl.name.clone(), fn_decl.clone());
 
         self.enter_scope();
+
+        // Check type parameters and add them to scope
+        for tp in &fn_decl.type_params {
+            self.define_symbol(tp.name.clone(), Type::Named(tp.name.clone()), true)?;
+        }
 
         // Check parameter types and define them in local scope
         for param in &fn_decl.params {
@@ -120,6 +128,12 @@ impl TypeChecker {
         }
         self.structs.insert(struct_decl.name.clone(), struct_decl.clone());
 
+        self.enter_scope();
+        // Check type parameters and add them to scope
+        for tp in &struct_decl.type_params {
+            self.define_symbol(tp.name.clone(), Type::Named(tp.name.clone()), true)?;
+        }
+
         // Check field types and methods
         for field in &struct_decl.fields {
             self.check_type(&field.type_)?;
@@ -128,6 +142,27 @@ impl TypeChecker {
         for method in &struct_decl.methods {
             self.check_fn_decl(method)?;
         }
+        self.leave_scope();
+        Ok(())
+    }
+
+    fn check_interface_decl(&mut self, interface_decl: &InterfaceDecl) -> Result<()> {
+        if self.interfaces.contains_key(&interface_decl.name) {
+            return Err(miette::miette!("Redefinition of interface '{}'", interface_decl.name));
+        }
+        self.interfaces.insert(interface_decl.name.clone(), interface_decl.clone());
+
+        self.enter_scope();
+        for tp in &interface_decl.type_params {
+            self.define_symbol(tp.name.clone(), Type::Named(tp.name.clone()), true)?;
+        }
+        for method in &interface_decl.methods {
+            for param in &method.params {
+                self.check_type(&param.type_annotation)?;
+            }
+            self.check_type(&method.return_type)?;
+        }
+        self.leave_scope();
         Ok(())
     }
 
@@ -432,6 +467,18 @@ impl TypeChecker {
             }
             Expression::Struct(struct_expr) => {
                 if let Some(s) = self.structs.get(&struct_expr.name).cloned() {
+                    let mut substitution = HashMap::new();
+                    if let Some(args) = &struct_expr.type_args {
+                        if args.len() != s.type_params.len() {
+                            return Err(miette::miette!("Struct '{}' expects {} type arguments, but {} were provided", struct_expr.name, s.type_params.len(), args.len()));
+                        }
+                        for (i, param) in s.type_params.iter().enumerate() {
+                            substitution.insert(param.name.clone(), args[i].clone());
+                        }
+                    } else if !s.type_params.is_empty() {
+                         return Err(miette::miette!("Struct '{}' requires type arguments for instantiation", struct_expr.name));
+                    }
+
                     for field_decl in &s.fields {
                         if !struct_expr.fields.iter().any(|f| f.name == field_decl.name) {
                             return Err(miette::miette!("Missing field '{}' in initializer for struct '{}'", field_decl.name, struct_expr.name));
@@ -441,14 +488,20 @@ impl TypeChecker {
                         let decl = s.fields.iter().find(|f| f.name == field.name)
                             .ok_or_else(|| miette::miette!("No such field '{}' in struct '{}'", field.name, struct_expr.name))?;
                         let val_type = self.check_expression(&field.value)?;
-                        if !self.is_assignable(&val_type, &decl.type_) {
-                            return Err(miette::miette!("Type mismatch for field '{}' in struct '{}': expected {:?}, found {:?}", field.name, struct_expr.name, decl.type_, val_type));
+                        let expected_type = self.substitute_type(&decl.type_, &substitution);
+                        if !self.is_assignable(&val_type, &expected_type) {
+                            return Err(miette::miette!("Type mismatch for field '{}' in struct '{}': expected {:?}, found {:?}", field.name, struct_expr.name, expected_type, val_type));
                         }
                     }
+
+                    if let Some(args) = &struct_expr.type_args {
+                        Ok(Type::Generic(Box::new(Type::Named(struct_expr.name.clone())), args.clone()))
+                    } else {
+                        Ok(Type::Named(struct_expr.name.clone()))
+                    }
                 } else {
-                    return Err(miette::miette!("Undefined struct '{}'", struct_expr.name));
+                    Err(miette::miette!("Undefined struct '{}'", struct_expr.name))
                 }
-                Ok(Type::Named(struct_expr.name.clone()))
             }
             Expression::Await(await_expr) => self.check_expression(&await_expr.expr),
             Expression::Try(try_expr) => self.check_expression(&try_expr.expr),
@@ -498,11 +551,21 @@ impl TypeChecker {
             if let Type::Named(struct_name) = &obj_type {
                 if let Some(s) = self.structs.get(struct_name).cloned() {
                     if let Some(method) = s.methods.iter().find(|m| m.name == member_expr.property) {
+                        let mut substitution = HashMap::new();
+                        if let Some(args) = &call_expr.type_args {
+                            if args.len() != method.type_params.len() {
+                                return Err(miette::miette!("Method '{}' expects {} type arguments, but {} were provided", method.name, method.type_params.len(), args.len()));
+                            }
+                            for (i, param) in method.type_params.iter().enumerate() {
+                                substitution.insert(param.name.clone(), args[i].clone());
+                            }
+                        }
+
                         if method.params.is_empty() {
                             return Err(miette::miette!("Method {} must have a self parameter", method.name));
                         }
-                        let self_type = &method.params[0].type_annotation;
-                        if !self.is_assignable(&obj_type, self_type) {
+                        let self_type = self.substitute_type(&method.params[0].type_annotation, &substitution);
+                        if !self.is_assignable(&obj_type, &self_type) {
                             return Err(miette::miette!("Cannot call method {} on type {:?}", method.name, obj_type));
                         }
                         
@@ -512,12 +575,12 @@ impl TypeChecker {
                         
                         for (i, arg) in call_expr.args.iter().enumerate() {
                             let arg_type = self.check_expression(arg)?;
-                            let expected = &method.params[i + 1].type_annotation;
-                            if !self.is_assignable(&arg_type, expected) {
+                            let expected = self.substitute_type(&method.params[i + 1].type_annotation, &substitution);
+                            if !self.is_assignable(&arg_type, &expected) {
                                 return Err(miette::miette!("Argument {} to method '{}' has type {:?}, but expected {:?}", i, method.name, arg_type, expected));
                             }
                         }
-                        return Ok(method.return_type.clone());
+                        return Ok(self.substitute_type(&method.return_type, &substitution));
                     }
                 }
 
@@ -525,18 +588,28 @@ impl TypeChecker {
                 if let Some(fn_decl) = self.functions.get(&member_expr.property).cloned() {
                     if !fn_decl.params.is_empty() && fn_decl.params[0].name == "self" {
                         if self.is_assignable(&obj_type, &fn_decl.params[0].type_annotation) {
+                            let mut substitution = HashMap::new();
+                            if let Some(args) = &call_expr.type_args {
+                                if args.len() != fn_decl.type_params.len() {
+                                    return Err(miette::miette!("Method '{}' expects {} type arguments, but {} were provided", fn_decl.name, fn_decl.type_params.len(), args.len()));
+                                }
+                                for (i, param) in fn_decl.type_params.iter().enumerate() {
+                                    substitution.insert(param.name.clone(), args[i].clone());
+                                }
+                            }
+
                             if fn_decl.params.len() - 1 != call_expr.args.len() {
                                 return Err(miette::miette!("Method '{}' expects {} arguments, but {} were provided", fn_decl.name, fn_decl.params.len() - 1, call_expr.args.len()));
                             }
                             
                             for (i, arg) in call_expr.args.iter().enumerate() {
                                 let arg_type = self.check_expression(arg)?;
-                                let expected = &fn_decl.params[i + 1].type_annotation;
-                                if !self.is_assignable(&arg_type, expected) {
+                                let expected = self.substitute_type(&fn_decl.params[i + 1].type_annotation, &substitution);
+                                if !self.is_assignable(&arg_type, &expected) {
                                     return Err(miette::miette!("Argument {} to method '{}' has type {:?}, but expected {:?}", i, fn_decl.name, arg_type, expected));
                                 }
                             }
-                            return Ok(fn_decl.return_type.clone());
+                            return Ok(self.substitute_type(&fn_decl.return_type, &substitution));
                         }
                     }
                 }
@@ -561,17 +634,28 @@ impl TypeChecker {
         // Handle case where callee is an identifier for a known function
         if let Expression::Identifier(name) = callee {
             if let Some(fn_decl) = self.functions.get(name).cloned() {
+                let mut substitution = HashMap::new();
+                if let Some(args) = &call_expr.type_args {
+                    if args.len() != fn_decl.type_params.len() {
+                        return Err(miette::miette!("Function '{}' expects {} type arguments, but {} were provided", name, fn_decl.type_params.len(), args.len()));
+                    }
+                    for (i, param) in fn_decl.type_params.iter().enumerate() {
+                        substitution.insert(param.name.clone(), args[i].clone());
+                    }
+                }
+
                 if fn_decl.params.len() != call_expr.args.len() {
                     return Err(miette::miette!("Function '{}' expects {} arguments, but {} were provided", name, fn_decl.params.len(), call_expr.args.len()));
                 }
                 for (i, arg) in call_expr.args.iter().enumerate() {
                     let arg_type = self.check_expression(arg)?;
-                    let expected = &fn_decl.params[i].type_annotation;
-                    if !self.is_assignable(&arg_type, expected) {
+                    let expected = self.substitute_type(&fn_decl.params[i].type_annotation, &substitution);
+                    if !self.is_assignable(&arg_type, &expected) {
                         return Err(miette::miette!("Argument {} to function '{}' has type {:?}, but expected {:?}", i, name, arg_type, expected));
                     }
                 }
-                return Ok(fn_decl.return_type.clone());
+                let ret_type = self.substitute_type(&fn_decl.return_type, &substitution);
+                return Ok(ret_type);
             }
         }
         
@@ -613,6 +697,33 @@ impl TypeChecker {
             Type::I8 | Type::I16 | Type::I32 | Type::I64 | Type::I128 | Type::Isize |
             Type::U8 | Type::U16 | Type::U32 | Type::U64 | Type::U128 | Type::Usize
         )
+    }
+
+    fn substitute_type(&self, ty: &Type, sub: &HashMap<String, Type>) -> Type {
+        match ty {
+            Type::Named(name) => {
+                if let Some(replacement) = sub.get(name) {
+                    replacement.clone()
+                } else {
+                    ty.clone()
+                }
+            }
+            Type::Generic(base, args) => {
+                let new_base = self.substitute_type(base, sub);
+                let new_args = args.iter().map(|a| self.substitute_type(a, sub)).collect();
+                Type::Generic(Box::new(new_base), new_args)
+            }
+            Type::Pointer(inner) => Type::Pointer(Box::new(self.substitute_type(inner, sub))),
+            Type::Array(inner) => Type::Array(Box::new(self.substitute_type(inner, sub))),
+            Type::Optional(inner) => Type::Optional(Box::new(self.substitute_type(inner, sub))),
+            Type::ErrorUnion(err, val) => Type::ErrorUnion(err.clone(), Box::new(self.substitute_type(val, sub))),
+            Type::Tuple(ts) => Type::Tuple(ts.iter().map(|t| self.substitute_type(t, sub)).collect()),
+            Type::Function(ps, rs) => {
+                let new_ps = ps.iter().map(|p| self.substitute_type(p, sub)).collect();
+                Type::Function(new_ps, Box::new(self.substitute_type(rs, sub)))
+            }
+            _ => ty.clone(),
+        }
     }
 }
 

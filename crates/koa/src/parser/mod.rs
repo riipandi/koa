@@ -50,6 +50,7 @@ impl Parser {
                 Declaration::FnDecl(f) => f.is_pub = true,
                 Declaration::StructDecl(s) => s.is_pub = true,
                 Declaration::EnumDecl(e) => e.is_pub = true,
+                Declaration::InterfaceDecl(i) => i.is_pub = true,
                 Declaration::ConstDecl(c) => c.is_pub = true,
                 Declaration::ErrorDecl(e) => e.is_pub = true,
                 _ => {}
@@ -63,6 +64,7 @@ impl Parser {
             Some(TokenKind::Fn) => Ok(Some(self.parse_fn_decl()?)),
             Some(TokenKind::Struct) => Ok(Some(self.parse_struct_decl()?)),
             Some(TokenKind::Enum) => Ok(Some(self.parse_enum_decl()?)),
+            Some(TokenKind::Interface) => Ok(Some(self.parse_interface_decl()?)),
             Some(TokenKind::Const) => Ok(Some(self.parse_const_decl()?)),
             Some(TokenKind::Error) => Ok(Some(self.parse_error_decl()?)),
             Some(TokenKind::Import) => Ok(Some(self.parse_import_decl()?)),
@@ -233,6 +235,56 @@ impl Parser {
         }))
     }
 
+    fn parse_interface_decl(&mut self) -> Result<Declaration> {
+        let span = self.consume_token(TokenKind::Interface)?.span;
+        let name = self.consume_identifier()?;
+
+        let type_params = if self.match_token(TokenKind::Less) {
+            self.parse_type_params()?
+        } else {
+            Vec::new()
+        };
+
+        self.consume_token(TokenKind::LBrace)?;
+        let mut methods = Vec::new();
+
+        while !self.check(TokenKind::RBrace) && !self.is_at_end() {
+            methods.push(self.parse_interface_method()?);
+        }
+
+        self.consume_token(TokenKind::RBrace)?;
+
+        Ok(Declaration::InterfaceDecl(InterfaceDecl {
+            name,
+            type_params,
+            methods,
+            span,
+            is_pub: false,
+        }))
+    }
+
+    fn parse_interface_method(&mut self) -> Result<InterfaceMethod> {
+        let start_span = self.consume_token(TokenKind::Fn)?.span;
+        let name = self.consume_identifier()?;
+
+        self.consume_token(TokenKind::LParen)?;
+        let params = self.parse_params()?;
+        self.consume_token(TokenKind::RParen)?;
+
+        self.consume_token(TokenKind::Colon)?;
+        let return_type = self.parse_type()?;
+        self.consume_token(TokenKind::Semicolon)?;
+
+        let span = start_span.combine(self.previous().span);
+
+        Ok(InterfaceMethod {
+            name,
+            params,
+            return_type,
+            span,
+        })
+    }
+
     fn parse_import_decl(&mut self) -> Result<Declaration> {
         let span = self.consume_token(TokenKind::Import)?.span;
         let mut specifiers = Vec::new();
@@ -275,10 +327,22 @@ impl Parser {
         Ok(Declaration::ExportDecl(ExportDecl { declaration: Box::new(decl), span }))
     }
 
-    fn parse_type_params(&mut self) -> Result<Vec<String>> {
+    fn parse_type_params(&mut self) -> Result<Vec<TypeParameter>> {
         let mut params = Vec::new();
         while !self.check(TokenKind::Greater) && !self.is_at_end() {
-            params.push(self.consume_identifier()?);
+            let start_span = self.peek().span;
+            let name = self.consume_identifier()?;
+            let mut constraints = Vec::new();
+            if self.match_token(TokenKind::Colon) {
+                loop {
+                    constraints.push(self.parse_type()?);
+                    if !self.match_token(TokenKind::Plus) {
+                        break;
+                    }
+                }
+            }
+            let span = start_span.combine(self.previous().span);
+            params.push(TypeParameter { name, constraints, span });
             if !self.match_token(TokenKind::Comma) {
                 break;
             }
@@ -571,6 +635,40 @@ impl Parser {
         let mut expr = self.parse_primary_expr()?;
         loop {
             match self.peek_kind() {
+                Some(TokenKind::Less) => {
+                    // Possible generic arguments: callee<Args>(...)
+                    // To distinguish from comparison, we look ahead or try to parse.
+                    // Simplified: if we can parse type arguments followed by LParen, it's a call.
+                    let checkpoint = self.position;
+                    self.advance(); // consume '<'
+                    let mut type_args = Vec::new();
+                    let mut is_generic = true;
+                    while !self.check(TokenKind::Greater) && !self.is_at_end() {
+                        if let Ok(ty) = self.parse_type() {
+                            type_args.push(ty);
+                            if !self.match_token(TokenKind::Comma) { break; }
+                        } else {
+                            is_generic = false;
+                            break;
+                        }
+                    }
+                    if is_generic && self.match_token(TokenKind::Greater) && self.check(TokenKind::LParen) {
+                        // It's a generic call
+                        self.consume_token(TokenKind::LParen)?;
+                        let mut args = Vec::new();
+                        while !self.check(TokenKind::RParen) && !self.is_at_end() {
+                            args.push(Box::new(self.parse_expression()?));
+                            if !self.match_token(TokenKind::Comma) { break; }
+                        }
+                        let r_paren_span = self.consume_token(TokenKind::RParen)?.span;
+                        let span = expr.span_info().combine(r_paren_span);
+                        expr = Expression::Call(CallExpr { callee: Box::new(expr), type_args: Some(type_args), args, span });
+                    } else {
+                        // Not a generic call, backtrack
+                        self.position = checkpoint;
+                        break;
+                    }
+                }
                 Some(TokenKind::LParen) => {
                     self.advance();
                     let mut args = Vec::new();
@@ -580,7 +678,7 @@ impl Parser {
                     }
                     let r_paren_span = self.consume_token(TokenKind::RParen)?.span;
                     let span = expr.span_info().combine(r_paren_span);
-                    expr = Expression::Call(CallExpr { callee: Box::new(expr), args, span });
+                    expr = Expression::Call(CallExpr { callee: Box::new(expr), type_args: None, args, span });
                 }
                 Some(TokenKind::Dot) => {
                     self.advance();
@@ -638,6 +736,47 @@ impl Parser {
                 let name_token = self.advance();
                 let name = name_token.literal.clone().unwrap_or_default();
                 let name_span = name_token.span;
+                
+                // Try to parse generic struct instantiation: Name<T> { fields }
+                let checkpoint = self.position;
+                if self.match_token(TokenKind::Less) {
+                    let mut type_args = Vec::new();
+                    let mut is_generic_struct = true;
+                    while !self.check(TokenKind::Greater) && !self.is_at_end() {
+                        if let Ok(ty) = self.parse_type() {
+                            type_args.push(ty);
+                            if !self.match_token(TokenKind::Comma) { break; }
+                        } else {
+                            is_generic_struct = false;
+                            break;
+                        }
+                    }
+                    
+                    if is_generic_struct && self.match_token(TokenKind::Greater) && self.check(TokenKind::LBrace) {
+                        self.consume_token(TokenKind::LBrace)?;
+                        let mut fields = Vec::new();
+                        while !self.check(TokenKind::RBrace) && !self.is_at_end() {
+                            let field_name = self.consume_identifier()?;
+                            self.consume_token(TokenKind::Colon)?;
+                            let value = self.parse_expression()?;
+                            fields.push(StructField { name: field_name, value: Box::new(value), span: name_span });
+                            if !self.match_token(TokenKind::Comma) { break; }
+                        }
+                        let r_brace_span = self.consume_token(TokenKind::RBrace)?.span;
+                        return Ok(Expression::Struct(StructExpr { 
+                            name, 
+                            type_args: Some(type_args), 
+                            fields, 
+                            span: name_span.combine(r_brace_span) 
+                        }));
+                    } else {
+                        // Backtrack: might be a generic function call Name<T>(...) 
+                        // or just Name followed by a Less operator.
+                        self.position = checkpoint;
+                    }
+                }
+
+                // Normal struct instantiation: Name { fields }
                 if self.check(TokenKind::LBrace) {
                     self.advance();
                     let mut fields = Vec::new();
@@ -649,7 +788,7 @@ impl Parser {
                         if !self.match_token(TokenKind::Comma) { break; }
                     }
                     let r_brace_span = self.consume_token(TokenKind::RBrace)?.span;
-                    Ok(Expression::Struct(StructExpr { name, fields, span: name_span.combine(r_brace_span) }))
+                    Ok(Expression::Struct(StructExpr { name, type_args: None, fields, span: name_span.combine(r_brace_span) }))
                 } else {
                     Ok(Expression::Identifier(name))
                 }
@@ -744,6 +883,10 @@ impl Parser {
 
     fn peek_kind(&self) -> Option<TokenKind> {
         self.tokens.get(self.position).map(|t| t.kind)
+    }
+
+    fn peek(&self) -> &Token {
+        self.tokens.get(self.position).unwrap_or_else(|| self.tokens.last().unwrap())
     }
 
     fn previous(&self) -> &Token {

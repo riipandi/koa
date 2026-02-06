@@ -208,6 +208,11 @@ pub struct IrLowerer {
     block_count: usize,
     temp_count: usize,
     struct_map: HashMap<String, StructDecl>,
+    fn_map: HashMap<String, FnDecl>,
+    specialized_functions: Vec<IrFunction>,
+    specialized_function_names: Vec<String>,
+    specialized_structs: HashMap<String, IrType>,
+    type_substitution: HashMap<String, Type>,
     loop_stack: Vec<(String, String)>, // (continue_label, break_label)
 }
 
@@ -218,6 +223,11 @@ impl IrLowerer {
             block_count: 0,
             temp_count: 0,
             struct_map: HashMap::new(),
+            fn_map: HashMap::new(),
+            specialized_functions: Vec::new(),
+            specialized_function_names: Vec::new(),
+            specialized_structs: HashMap::new(),
+            type_substitution: HashMap::new(),
             loop_stack: Vec::new(),
         }
     }
@@ -227,29 +237,48 @@ impl IrLowerer {
         let mut globals = Vec::new();
         let mut types = HashMap::new();
 
-        // First pass: collect struct definitions
+        // First pass: collect struct and function definitions
         for decl in &ast.declarations {
-            if let Declaration::StructDecl(s) = decl {
-                self.struct_map.insert(s.name.clone(), s.clone());
+            match decl {
+                Declaration::StructDecl(s) => {
+                    self.struct_map.insert(s.name.clone(), s.clone());
+                }
+                Declaration::FnDecl(f) => {
+                    self.fn_map.insert(f.name.clone(), f.clone());
+                }
+                _ => {}
             }
         }
 
         for decl in &ast.declarations {
             match decl {
                 Declaration::FnDecl(fn_decl) => {
-                    let ir_fn = self.lower_fn_decl(fn_decl)?;
-                    functions.push(ir_fn);
+                    // Only lower non-generic functions in the top level
+                    if fn_decl.type_params.is_empty() {
+                        let ir_fn = self.lower_fn_decl(fn_decl)?;
+                        functions.push(ir_fn);
+                    }
                 }
                 Declaration::ConstDecl(const_decl) => {
                     let global = self.lower_const_decl(const_decl)?;
                     globals.push(global);
                 }
                 Declaration::StructDecl(struct_decl) => {
-                    let ir_type = self.lower_struct_decl(struct_decl)?;
-                    types.insert(struct_decl.name.clone(), ir_type);
+                    // Only lower non-generic structs in the top level
+                    if struct_decl.type_params.is_empty() {
+                        let ir_type = self.lower_struct_decl(struct_decl)?;
+                        types.insert(struct_decl.name.clone(), ir_type);
+                    }
                 }
                 _ => {}
             }
+        }
+
+        // Add specialized functions
+        functions.extend(self.specialized_functions.drain(..));
+        // Add specialized structs
+        for (name, ty) in self.specialized_structs.drain() {
+            types.insert(name, ty);
         }
 
         Ok(IrProgram {
@@ -521,7 +550,10 @@ impl IrLowerer {
                 }
                 
                 let callee = match &*call_expr.callee {
-                    Expression::Identifier(name) => name.clone(),
+                    Expression::Identifier(name) => {
+                        // Trigger specialization!
+                        self.specialize_fn(name, call_expr.type_args.as_ref())?
+                    }
                     Expression::Member(m) => m.property.clone(),
                     _ => return Err(miette::miette!("Expected function name")),
                 };
@@ -551,6 +583,18 @@ impl IrLowerer {
                     dest: load_dest.clone(),
                 });
                 Ok(IrOperand::Temp(load_dest))
+            }
+            Expression::Struct(struct_expr) => {
+                // Trigger struct specialization
+                self.specialize_struct(&struct_expr.name, struct_expr.type_args.as_ref())?;
+
+                let mut field_values = Vec::new();
+                for field in &struct_expr.fields {
+                    field_values.push(self.lower_expression(&field.value)?);
+                }
+
+                let dest = self.new_temp();
+                Ok(IrOperand::Temp(dest))
             }
             _ => {
                 Ok(IrOperand::Constant(IrConstant::Unit))
@@ -594,6 +638,7 @@ impl IrLowerer {
     }
 
     fn lower_type(&mut self, type_: &Type) -> Result<IrType> {
+        let type_ = self.substitute_type(type_);
         match type_ {
             Type::I8 => Ok(IrType::Int8),
             Type::I16 => Ok(IrType::Int16),
@@ -612,10 +657,27 @@ impl IrLowerer {
             Type::Bool => Ok(IrType::Bool),
             Type::String => Ok(IrType::String),
             Type::Void => Ok(IrType::Void),
-            Type::Pointer(inner) => Ok(IrType::Pointer(Box::new(self.lower_type(inner)?))),
-            Type::Array(inner) => Ok(IrType::Array(Box::new(self.lower_type(inner)?), 0)), // 0 size for now
-            Type::Optional(inner) => Ok(IrType::Pointer(Box::new(self.lower_type(inner)?))), // Simplified
-            Type::Named(_name) => Ok(IrType::Int32), // Placeholder for named types/structs
+            Type::Pointer(inner) => Ok(IrType::Pointer(Box::new(self.lower_type(&inner)?))),
+            Type::Array(inner) => Ok(IrType::Array(Box::new(self.lower_type(&inner)?), 0)), // 0 size for now
+            Type::Optional(inner) => Ok(IrType::Pointer(Box::new(self.lower_type(&inner)?))), // Simplified
+            Type::Named(name) => {
+                // Return placeholder or look up in specialized_structs
+                if let Some(spec) = self.specialized_structs.get(&name) {
+                    Ok(spec.clone())
+                } else if self.struct_map.contains_key(&name) {
+                    // Try to lower non-generic struct
+                    self.specialize_struct(&name, None)
+                } else {
+                    Ok(IrType::Int32)
+                }
+            }
+            Type::Generic(base, args) => {
+                if let Type::Named(name) = *base {
+                    self.specialize_struct(&name, Some(&args))
+                } else {
+                    Ok(IrType::Int32)
+                }
+            }
             _ => Ok(IrType::Int32), // Simplified
         }
     }
@@ -626,6 +688,136 @@ impl IrLowerer {
             fields.push(self.lower_type(&field.type_)?);
         }
         Ok(IrType::Struct(fields))
+    }
+
+    fn specialize_fn_name(&self, name: &str, type_args: &[Type]) -> String {
+        if type_args.is_empty() {
+            return name.to_string();
+        }
+        let args_str = type_args.iter()
+            .map(|t| format!("{:?}", t))
+            .collect::<Vec<_>>()
+            .join("_")
+            .replace(" ", "")
+            .replace("(", "_")
+            .replace(")", "_")
+            .replace("[", "_")
+            .replace("]", "_")
+            .replace(",", "_")
+            .replace(":", "_")
+            .replace("!", "_")
+            .replace("\"", "");
+        format!("{}<{}>", name, args_str)
+    }
+
+    fn substitute_type(&self, ty: &Type) -> Type {
+        match ty {
+            Type::Named(name) => {
+                if let Some(replacement) = self.type_substitution.get(name) {
+                    replacement.clone()
+                } else {
+                    ty.clone()
+                }
+            }
+            Type::Generic(base, args) => {
+                let new_base = self.substitute_type(base);
+                let new_args = args.iter().map(|a| self.substitute_type(a)).collect();
+                Type::Generic(Box::new(new_base), new_args)
+            }
+            Type::Pointer(inner) => Type::Pointer(Box::new(self.substitute_type(inner))),
+            Type::Array(inner) => Type::Array(Box::new(self.substitute_type(inner))),
+            Type::Optional(inner) => Type::Optional(Box::new(self.substitute_type(inner))),
+            Type::ErrorUnion(err, val) => Type::ErrorUnion(err.clone(), Box::new(self.substitute_type(val))),
+            Type::Tuple(ts) => Type::Tuple(ts.iter().map(|t| self.substitute_type(t)).collect()),
+            Type::Function(ps, rs) => {
+                let new_ps = ps.iter().map(|p| self.substitute_type(p)).collect();
+                Type::Function(new_ps, Box::new(self.substitute_type(rs)))
+            }
+            _ => ty.clone(),
+        }
+    }
+
+    fn specialize_fn(&mut self, name: &str, type_args: Option<&Vec<Type>>) -> Result<String> {
+        let actual_type_args = type_args.map(|v| v.as_slice()).unwrap_or(&[]);
+        let spec_name = self.specialize_fn_name(name, actual_type_args);
+        
+        if self.specialized_function_names.contains(&spec_name) {
+            return Ok(spec_name);
+        }
+
+        if let Some(f) = self.fn_map.get(name).cloned() {
+            if f.type_params.len() != actual_type_args.len() {
+                 return Err(miette::miette!("Function '{}' expects {} type arguments, but {} were provided", name, f.type_params.len(), actual_type_args.len()));
+            }
+
+            // Mark as specialized to avoid recursion
+            self.specialized_function_names.push(spec_name.clone());
+
+            // Save old state
+            let old_sub = self.type_substitution.clone();
+            let old_blocks = self.blocks.clone();
+            let old_block_count = self.block_count;
+            let old_temp_count = self.temp_count;
+
+            // Set up new substitution
+            for (i, param) in f.type_params.iter().enumerate() {
+                self.type_substitution.insert(param.name.clone(), actual_type_args[i].clone());
+            }
+
+            // Lower specialized function
+            let mut spec_f = self.lower_fn_decl(&f)?;
+            spec_f.name = spec_name.clone();
+            self.specialized_functions.push(spec_f);
+
+            // Restore state
+            self.type_substitution = old_sub;
+            self.blocks = old_blocks;
+            self.block_count = old_block_count;
+            self.temp_count = old_temp_count;
+
+            return Ok(spec_name);
+        }
+
+        Ok(name.to_string())
+    }
+
+    fn specialize_struct(&mut self, name: &str, type_args: Option<&Vec<Type>>) -> Result<IrType> {
+        if let Some(args) = type_args {
+            let spec_name = self.specialize_fn_name(name, args);
+            if let Some(hit) = self.specialized_structs.get(&spec_name) {
+                return Ok(hit.clone());
+            }
+
+            if let Some(s) = self.struct_map.get(name).cloned() {
+                // Save old substitution
+                let old_sub = self.type_substitution.clone();
+                // Set up new substitution for fields
+                for (i, param) in s.type_params.iter().enumerate() {
+                    self.type_substitution.insert(param.name.clone(), args[i].clone());
+                }
+
+                let mut fields = Vec::new();
+                for field in &s.fields {
+                    let substituted = self.substitute_type(&field.type_);
+                    fields.push(self.lower_type(&substituted)?);
+                }
+
+                let ir_type = IrType::Struct(fields);
+                self.specialized_structs.insert(spec_name, ir_type.clone());
+                self.type_substitution = old_sub;
+                return Ok(ir_type);
+            }
+        }
+
+        if let Some(s) = self.struct_map.get(name).cloned() {
+            if !s.type_params.is_empty() {
+                return Err(miette::miette!("Generic struct '{}' requires type arguments", name));
+            }
+            return self.lower_struct_decl(&s);
+        }
+        
+        // Final fallback (placeholder logic from before)
+        Ok(IrType::Int32)
     }
 
     fn lower_const_decl(&mut self, const_decl: &ConstDecl) -> Result<IrGlobal> {
