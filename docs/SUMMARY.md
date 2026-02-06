@@ -140,19 +140,17 @@ pub fn main(): i32 {
 
 ### In Progress
 - [x] Milestone 1: Lexer Implementation
-- [ ] Milestone 2: Parser Implementation
-- [ ] Milestone 3: AST definitions
+- [x] Milestone 2: Parser Implementation
+- [x] Milestone 3: AST definitions
+- [ ] Milestone 4: Semantic Analysis & Type Checker
+- [ ] Milestone 5: Intermediate Representation (IR)
+- [ ] Milestone 6: LLVM IR Generation
 
 ### Planned
-- [ ] Milestone 4: If/else expressions
-- [ ] Milestone 5: While loops
-- [ ] Milestone 6: Functions with imports
-- [ ] Milestone 7: Structs
-- [ ] Milestone 8: Arrays
-- [ ] Milestone 9: Strings
-- [ ] Milestone 10: Error handling
-- [ ] Milestone 11: Standard library
-- [ ] Milestone 12: Garbage collector
+- [ ] Milestone 7: Standard library
+- [ ] Milestone 8: Garbage collector
+- [ ] Milestone 9: Async/Await Runtime
+- [ ] Milestone 10: Toolchain refinement (REPL, LSP)
 
 ## License
 

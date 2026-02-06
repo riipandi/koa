@@ -290,13 +290,25 @@ impl Parser {
     fn parse_params(&mut self) -> Result<Vec<Param>> {
         let mut params = Vec::new();
         while !self.check(TokenKind::RParen) && !self.is_at_end() {
-            let p_name = self.consume_identifier()?;
-            self.consume_token(TokenKind::Colon)?;
-            let p_type = self.parse_type()?;
+            let (p_name, p_type) = if self.match_token(TokenKind::SelfValue) {
+                let name = "self".to_string();
+                let type_anno = if self.match_token(TokenKind::Colon) {
+                    self.parse_type()?
+                } else {
+                    Type::Named("Self".to_string())
+                };
+                (name, type_anno)
+            } else {
+                let name = self.consume_identifier()?;
+                self.consume_token(TokenKind::Colon)?;
+                let type_anno = self.parse_type()?;
+                (name, type_anno)
+            };
+
             params.push(Param {
                 name: p_name,
                 type_annotation: p_type,
-                span: self.peek().span,
+                span: self.previous().span, // Use the last token's span for now
             });
             if !self.match_token(TokenKind::Comma) {
                 break;
@@ -316,15 +328,35 @@ impl Parser {
             self.consume_token(TokenKind::RBracket)?;
             return Ok(Type::Array(Box::new(self.parse_type()?)));
         }
+        if self.match_token(TokenKind::Bang) {
+            return Ok(Type::ErrorUnion(None, Box::new(self.parse_type()?)));
+        }
 
         let mut base = if self.match_token(TokenKind::LParen) {
             let t = self.parse_type()?;
             self.consume_token(TokenKind::RParen)?;
             t
-        } else if self.match_token(TokenKind::Void) {
-            Type::Void
         } else {
-            Type::Named(self.consume_identifier()?)
+            match self.peek_kind() {
+                Some(TokenKind::Void) => { self.advance(); Type::Void }
+                Some(TokenKind::I8) => { self.advance(); Type::I8 }
+                Some(TokenKind::I16) => { self.advance(); Type::I16 }
+                Some(TokenKind::I32) => { self.advance(); Type::I32 }
+                Some(TokenKind::I64) => { self.advance(); Type::I64 }
+                Some(TokenKind::I128) => { self.advance(); Type::I128 }
+                Some(TokenKind::Isize) => { self.advance(); Type::Isize }
+                Some(TokenKind::U8) => { self.advance(); Type::U8 }
+                Some(TokenKind::U16) => { self.advance(); Type::U16 }
+                Some(TokenKind::U32) => { self.advance(); Type::U32 }
+                Some(TokenKind::U64) => { self.advance(); Type::U64 }
+                Some(TokenKind::U128) => { self.advance(); Type::U128 }
+                Some(TokenKind::Usize) => { self.advance(); Type::Usize }
+                Some(TokenKind::F32) => { self.advance(); Type::F32 }
+                Some(TokenKind::F64) => { self.advance(); Type::F64 }
+                Some(TokenKind::Bool) => { self.advance(); Type::Bool }
+                Some(TokenKind::String) => { self.advance(); Type::String }
+                _ => Type::Named(self.consume_identifier()?),
+            }
         };
 
         // Handle Generics: List<i32>
@@ -554,6 +586,17 @@ impl Parser {
             Some(TokenKind::True) => { self.advance(); Ok(Expression::Literal(Literal::Bool(true))) }
             Some(TokenKind::False) => { self.advance(); Ok(Expression::Literal(Literal::Bool(false))) }
             Some(TokenKind::Null) => { self.advance(); Ok(Expression::Literal(Literal::Null)) }
+            Some(TokenKind::Void) => { self.advance(); Ok(Expression::Literal(Literal::Null)) } // Treat void literal as Null for now
+            Some(TokenKind::LBracket) => {
+                let span = self.advance().span;
+                let mut elements = Vec::new();
+                while !self.check(TokenKind::RBracket) && !self.is_at_end() {
+                    elements.push(Box::new(self.parse_expression()?));
+                    if !self.match_token(TokenKind::Comma) { break; }
+                }
+                self.consume_token(TokenKind::RBracket)?;
+                Ok(Expression::Array(ArrayExpr { elements, span }))
+            }
             Some(TokenKind::Ident) => {
                 let t = self.advance();
                 Ok(Expression::Identifier(t.literal.clone().unwrap_or_default()))
@@ -650,10 +693,6 @@ impl Parser {
         self.tokens.get(self.position).map(|t| t.kind)
     }
 
-    fn peek(&self) -> &Token {
-        &self.tokens[self.position]
-    }
-
     fn previous(&self) -> &Token {
         &self.tokens[self.position - 1]
     }
@@ -686,3 +725,4 @@ impl SpanExt for Expression {
         }
     }
 }
+

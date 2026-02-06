@@ -456,6 +456,15 @@ pub struct ExportDecl {
 /// Types
 #[derive(Debug, Clone)]
 pub enum Type {
+    // Primitives
+    I8, I16, I32, I64, I128, Isize,
+    U8, U16, U32, U64, U128, Usize,
+    F32, F64,
+    Bool,
+    String,
+    Void,
+
+    // Complex
     Named(String),
     Generic(Box<Type>, Vec<Type>),
     ErrorUnion(Option<String>, Box<Type>),
@@ -464,5 +473,4 @@ pub enum Type {
     Function(Vec<Type>, Box<Type>),
     Pointer(Box<Type>),
     Optional(Box<Type>),
-    Void,
 }
