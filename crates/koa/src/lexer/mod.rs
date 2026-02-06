@@ -202,7 +202,15 @@ impl<'input> Lexer<'input> {
                     }
                     '/' => {
                         self.bump();
-                        TokenKind::Slash
+                        if self.peek() == Some('/') {
+                            self.skip_line_comment();
+                            return self.next_token();
+                        } else if self.peek() == Some('*') {
+                            self.skip_block_comment();
+                            return self.next_token();
+                        } else {
+                            TokenKind::Slash
+                        }
                     }
                     '%' => {
                         self.bump();
@@ -346,7 +354,7 @@ impl<'input> Lexer<'input> {
     }
 
     fn lex_number(&mut self) -> Result<TokenKind> {
-        let start = self.position;
+        let _start = self.position;
 
         // Consume all digits and decimal point
         while let Some(ch) = self.peek() {
@@ -419,6 +427,31 @@ impl<'input> Lexer<'input> {
         }
     }
 
+    fn skip_line_comment(&mut self) {
+        while let Some(ch) = self.peek() {
+            if ch == '\n' {
+                break;
+            }
+            self.bump();
+        }
+    }
+
+    fn skip_block_comment(&mut self) {
+        self.bump(); // consume the '*'
+        while let Some(ch) = self.peek() {
+            if ch == '*' && self.chars.clone().nth(1) == Some('/') {
+                self.bump(); // consume '*'
+                self.bump(); // consume '/'
+                break;
+            }
+            if ch == '\n' {
+                self.line += 1;
+                self.column = 1;
+            }
+            self.bump();
+        }
+    }
+
     fn peek(&mut self) -> Option<char> {
         self.chars.peek().copied()
     }
@@ -480,6 +513,50 @@ mod tests {
     #[test]
     fn test_simple_function() {
         let source = r#"
+            fn main(): i32 {
+                return 0;
+            }
+        "#;
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.tokenize().unwrap();
+        assert!(!tokens.is_empty());
+        assert_eq!(tokens[0].kind, TokenKind::Fn);
+    }
+
+    #[test]
+    fn test_line_comment() {
+        let source = r#"
+            // This is a comment
+            fn main(): i32 {
+                return 0;
+            }
+        "#;
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.tokenize().unwrap();
+        assert!(!tokens.is_empty());
+        assert_eq!(tokens[0].kind, TokenKind::Fn);
+    }
+
+    #[test]
+    fn test_doc_comment() {
+        let source = r#"
+            //! Module documentation
+            /// Function documentation
+            fn main(): i32 {
+                return 0;
+            }
+        "#;
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.tokenize().unwrap();
+        assert!(!tokens.is_empty());
+        assert_eq!(tokens[0].kind, TokenKind::Fn);
+    }
+
+    #[test]
+    fn test_block_comment() {
+        let source = r#"
+            /* This is a
+               multi-line comment */
             fn main(): i32 {
                 return 0;
             }

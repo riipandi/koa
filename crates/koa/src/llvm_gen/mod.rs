@@ -401,10 +401,7 @@ impl<'ctx> LLVMCodegen<'ctx> {
             IrType::Uint64 => self.context.i64_type().into(),
             IrType::Float32 => self.context.f32_type().into(),
             IrType::Float64 => self.context.f64_type().into(),
-            IrType::Pointer(inner) => self
-                .ir_type_to_llvm(inner)
-                .ptr_type(AddressSpace::default())
-                .into(),
+            IrType::Pointer(_inner) => self.context.ptr_type(AddressSpace::default()).into(),
             IrType::Array(inner, size) => {
                 self.ir_type_to_llvm(inner).array_type(*size as u32).into()
             }

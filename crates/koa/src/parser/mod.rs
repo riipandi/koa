@@ -681,6 +681,7 @@ impl Parser {
 /// Span helper trait
 trait SpanHelper {
     fn span(&self) -> crate::lexer::Span;
+    #[allow(dead_code)]
     fn combine(&self, other: crate::lexer::Span) -> crate::lexer::Span;
 }
 

@@ -186,7 +186,7 @@ impl IrLowerer {
     pub fn lower(&mut self, ast: &Ast) -> Result<IrProgram> {
         let mut functions = Vec::new();
         let mut globals = Vec::new();
-        let mut types = HashMap::new();
+        let types = HashMap::new();
 
         for decl in &ast.declarations {
             match decl {
