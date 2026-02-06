@@ -3,6 +3,7 @@
 //! The IR is a simplified representation of the AST optimized for code generation.
 
 use crate::ast::*;
+use miette::Result;
 use std::collections::HashMap;
 
 /// Intermediate representation of a Koa program
@@ -182,7 +183,7 @@ impl IrLowerer {
         Self {}
     }
 
-    pub fn lower(&mut self, ast: &Ast) -> Result<IrProgram, miette::Report> {
+    pub fn lower(&mut self, ast: &Ast) -> Result<IrProgram> {
         let mut functions = Vec::new();
         let mut globals = Vec::new();
         let mut types = HashMap::new();
@@ -210,7 +211,7 @@ impl IrLowerer {
         })
     }
 
-    fn lower_fn_decl(&mut self, fn_decl: &FnDecl) -> Result<IrFunction, miette::Report> {
+    fn lower_fn_decl(&mut self, fn_decl: &FnDecl) -> Result<IrFunction> {
         let mut params = Vec::new();
         for param in &fn_decl.params {
             params.push(IrParam {
@@ -231,7 +232,7 @@ impl IrLowerer {
         })
     }
 
-    fn lower_block(&mut self, block: &Block) -> Result<IrBlock, miette::Report> {
+    fn lower_block(&mut self, block: &Block) -> Result<IrBlock> {
         let mut instructions = Vec::new();
 
         for stmt in &block.statements {
@@ -261,6 +262,18 @@ impl IrLowerer {
                     });
                 }
             }
+            Statement::Const(const_stmt) => {
+                // Lower const statement
+                let operand = self.lower_expression(&const_stmt.value, instructions)?;
+                instructions.push(IrInstruction::Alloca {
+                    name: const_stmt.name.clone(),
+                    type_: IrType::Int32, // Simplified
+                });
+                instructions.push(IrInstruction::Store {
+                    value: operand,
+                    dest: IrOperand::Local(const_stmt.name.clone()),
+                });
+            }
             Statement::Return(return_stmt) => {
                 let value = if let Some(expr) = &return_stmt.value {
                     Some(self.lower_expression(expr, instructions)?)
@@ -283,7 +296,7 @@ impl IrLowerer {
         &mut self,
         expr: &Expression,
         instructions: &mut Vec<IrInstruction>,
-    ) -> Result<IrOperand, miette::Report> {
+    ) -> Result<IrOperand> {
         match expr {
             Expression::Literal(literal) => {
                 let constant = self.lower_literal(literal)?;
@@ -327,9 +340,16 @@ impl IrLowerer {
         }
     }
 
-    fn lower_literal(&mut self, literal: &Literal) -> Result<IrConstant, miette::Report> {
+    fn lower_literal(&mut self, literal: &Literal) -> Result<IrConstant> {
         match literal {
-            Literal::Number(n) => Ok(IrConstant::Float(*n)),
+            Literal::Number(n) => {
+                // Check if it's an integer or float
+                if n.fract() == 0.0 && n.abs() < (i64::MAX as f64) {
+                    Ok(IrConstant::Int(*n as i64))
+                } else {
+                    Ok(IrConstant::Float(*n))
+                }
+            }
             Literal::Bool(b) => Ok(IrConstant::Bool(*b)),
             Literal::String(s) => Ok(IrConstant::String(s.clone())),
             Literal::Null => Ok(IrConstant::Null),
@@ -349,12 +369,12 @@ impl IrLowerer {
         }
     }
 
-    fn lower_type(&mut self, _type_: &Type) -> Result<IrType, miette::Report> {
+    fn lower_type(&mut self, _type_: &Type) -> Result<IrType> {
         // Simplified type lowering
         Ok(IrType::Int32)
     }
 
-    fn lower_const_decl(&mut self, const_decl: &ConstDecl) -> Result<IrGlobal, miette::Report> {
+    fn lower_const_decl(&mut self, const_decl: &ConstDecl) -> Result<IrGlobal> {
         let type_ = self.lower_type(&const_decl.type_)?;
         let init = match &const_decl.value {
             Expression::Literal(literal) => Some(self.lower_literal(literal)?),

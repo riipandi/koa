@@ -6,15 +6,16 @@
 //! - Error sets and error unions
 //! - Built-in async/await
 
-pub mod lexer;
-pub mod parser;
 pub mod ast;
-pub mod typeck;
 pub mod ir;
+pub mod lexer;
 pub mod llvm_gen;
+pub mod parser;
+pub mod typeck;
 
 pub use ast::Ast;
-pub use lexer::{Token, TokenKind, Lexer};
+pub use ir::{IrLowerer, IrProgram};
+pub use lexer::{Lexer, Token, TokenKind};
 pub use parser::Parser;
 pub use typeck::TypeChecker;
 

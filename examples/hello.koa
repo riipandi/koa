@@ -1,8 +1,0 @@
-//! Hello World - Koa Example
-//! 
-//! This is the simplest Koa program
-
-pub fn main(): i32 {
-    println!("Hello, World!");
-    0;
-}

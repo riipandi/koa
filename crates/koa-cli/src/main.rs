@@ -1,8 +1,9 @@
 //! Koa CLI - Compiler driver
 
 use clap::{Parser as ClapParser, Subcommand};
-use koa::{Lexer, Parser as KoaParser, TypeChecker};
+use koa::{ir::IrLowerer, Lexer, Parser as KoaParser, TypeChecker};
 use miette::{IntoDiagnostic, Result};
+use std::fs;
 use std::path::PathBuf;
 
 /// Koa Programming Language Compiler
@@ -80,35 +81,62 @@ fn build(input: PathBuf, output: Option<PathBuf>, mode: String) -> Result<()> {
     println!("Building {:?} in {} mode", input, mode);
 
     // Read source
-    let source = std::fs::read_to_string(&input).into_diagnostic()?;
+    println!("Reading source...");
+    let source = fs::read_to_string(&input).into_diagnostic()?;
+    println!("Source read: {} bytes", source.len());
 
     // Lex
+    println!("Lexing...");
     let mut lexer = Lexer::new(&source);
     let tokens = lexer.tokenize()?;
-
     println!("Tokens: {}", tokens.len());
 
     // Parse
+    println!("Parsing...");
     let mut parser = KoaParser::new(tokens);
     let ast = parser.parse()?;
-
     println!("Declarations: {}", ast.declarations.len());
 
     // Type check
+    println!("Type checking...");
     let mut typeck = TypeChecker::new();
     typeck.check(&ast)?;
+    println!("Type check passed");
 
-    // TODO: Compile to LLVM IR
-    // TODO: Generate object file
-    // TODO: Link
+    // Lower to IR
+    println!("Lowering to IR...");
+    let mut lowerer = IrLowerer::new();
+    let ir_program = lowerer.lower(&ast)?;
+    println!("IR functions: {}", ir_program.functions.len());
 
+    // Debug: Print IR
+    if ir_program.functions.len() > 0 {
+        let func = &ir_program.functions[0];
+        println!("  Function: {}", func.name);
+        println!("  Instructions: {}", func.body.instructions.len());
+        for (i, instr) in func.body.instructions.iter().enumerate() {
+            println!("    {}: {:?}", i, instr);
+        }
+    }
+
+    // Generate LLVM IR
+    let llvm_ir = koa::llvm_gen::compile_to_llvm(&ir_program)?;
+
+    // Determine output path
     let out_path = output.unwrap_or_else(|| {
         let mut out = input.clone();
         out.set_extension("");
         out
     });
 
-    println!("Output: {:?}", out_path);
+    // Write LLVM IR to .ll file
+    let ll_path = out_path.with_extension("ll");
+    fs::write(&ll_path, llvm_ir).into_diagnostic()?;
+
+    println!("LLVM IR written to: {:?}", ll_path);
+
+    // TODO: Compile .ll to object file
+    // TODO: Link to executable
 
     Ok(())
 }

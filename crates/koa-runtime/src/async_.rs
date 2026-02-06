@@ -4,7 +4,6 @@
 
 use std::future::Future;
 use std::pin::Pin;
-use std::task::{Context, Poll};
 
 /// Async runtime
 pub struct AsyncRuntime {
@@ -15,7 +14,7 @@ impl AsyncRuntime {
     pub fn new() -> Self {
         Self {}
     }
-    
+
     pub fn block_on<F>(&mut self, _future: F) -> F::Output
     where
         F: Future + Send + 'static,

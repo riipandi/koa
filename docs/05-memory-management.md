@@ -19,6 +19,8 @@ Concurrent Mark-Sweep GC with tri-color marking:
 - **Gray** - Live object, children not yet scanned
 - **Black** - Live object, children already scanned
 
+> Note: Planned to implement Incremental GC in the future.
+
 ### GC Phases
 
 1. **Mark Setup** (STW - microseconds)
@@ -97,11 +99,11 @@ Koa provides **multiple ways** to configure garbage collection:
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `KOA_GC_PERCENT` | Heap growth trigger (%) | 100 |
-| `KOA_GC_LIMIT` | Soft memory limit | None |
-| `KOA_GC_DEBUG` | Enable GC logging | false |
+| Variable         | Description             | Default |
+|------------------|-------------------------|---------|
+| `KOA_GC_PERCENT` | Heap growth trigger (%) | 100     |
+| `KOA_GC_LIMIT`   | Soft memory limit       | None    |
+| `KOA_GC_DEBUG`   | Enable GC logging       | false   |
 
 **Examples:**
 
@@ -165,13 +167,13 @@ fn main(): i32 {
 
 The `gc_percent` parameter controls when GC triggers:
 
-| Value | Description |
-|-------|-------------|
-| `off` | Disable GC (not recommended) |
-| `50` | GC at 50% heap growth (more frequent) |
-| `100` | GC at 100% heap growth (default) |
+| Value | Description                            |
+|-------|----------------------------------------|
+| `off` | Disable GC (not recommended)           |
+| `50`  | GC at 50% heap growth (more frequent)  |
+| `100` | GC at 100% heap growth (default)       |
 | `200` | GC at 200% heap growth (less frequent) |
-| `400` | GC at 400% heap growth (minimal GC) |
+| `400` | GC at 400% heap growth (minimal GC)    |
 
 **Formula:**
 

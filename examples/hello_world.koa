@@ -1,0 +1,11 @@
+//!
+//! Hello World example
+//!
+//! This is the simplest Koa program that prints "Hello, World!" to stdout.
+//!
+
+/// Main function - entry point
+fn main(): i32 {
+    println!("Hello, World!");
+    return 0;
+}

@@ -37,11 +37,13 @@ pub enum TokenKind {
     Try,
     Catch,
     Throw,
+    Defer,
     Pub,
     Priv,
     Import,
     Export,
     From,
+    As,
     True,
     False,
     Null,
@@ -81,7 +83,6 @@ pub enum TokenKind {
     Semicolon,
     Arrow,
     FatArrow,
-    As,
 
     // Error token
     Error,
@@ -152,9 +153,12 @@ impl<'input> Lexer<'input> {
     pub fn tokenize(&mut self) -> Result<Vec<Token>> {
         let mut tokens = Vec::new();
 
-        while let Some(token) = self.next_token()? {
-            if token.kind != TokenKind::EOF {
-                tokens.push(token);
+        loop {
+            let token = self.next_token()?;
+            match token {
+                None => break,
+                Some(t) if t.kind == TokenKind::EOF => break,
+                Some(t) => tokens.push(t),
             }
         }
 
@@ -308,7 +312,10 @@ impl<'input> Lexer<'input> {
                 };
 
                 let end = self.position;
-                let literal = if kind == TokenKind::Ident || kind == TokenKind::String {
+                let literal = if kind == TokenKind::Ident
+                    || kind == TokenKind::String
+                    || kind == TokenKind::Number
+                {
                     Some(self.input[start..end].to_string())
                 } else {
                     None
@@ -339,6 +346,9 @@ impl<'input> Lexer<'input> {
     }
 
     fn lex_number(&mut self) -> Result<TokenKind> {
+        let start = self.position;
+
+        // Consume all digits and decimal point
         while let Some(ch) = self.peek() {
             if ch.is_ascii_digit() || ch == '.' {
                 self.bump();
@@ -346,10 +356,12 @@ impl<'input> Lexer<'input> {
                 break;
             }
         }
+
         Ok(TokenKind::Number)
     }
 
     fn lex_ident(&mut self) -> Result<TokenKind> {
+        let start = self.position;
         while let Some(ch) = self.peek() {
             if ch.is_alphanumeric() || ch == '_' {
                 self.bump();
@@ -358,7 +370,39 @@ impl<'input> Lexer<'input> {
             }
         }
 
-        Ok(TokenKind::Ident)
+        // Check if it's a keyword
+        let text = &self.input[start..self.position];
+        let kind = match text {
+            "fn" => TokenKind::Fn,
+            "let" => TokenKind::Let,
+            "const" => TokenKind::Const,
+            "struct" => TokenKind::Struct,
+            "enum" => TokenKind::Enum,
+            "if" => TokenKind::If,
+            "else" => TokenKind::Else,
+            "return" => TokenKind::Return,
+            "while" => TokenKind::While,
+            "for" => TokenKind::For,
+            "loop" => TokenKind::Loop,
+            "match" => TokenKind::Match,
+            "break" => TokenKind::Break,
+            "continue" => TokenKind::Continue,
+            "pub" => TokenKind::Pub,
+            "async" => TokenKind::Async,
+            "await" => TokenKind::Await,
+            "try" => TokenKind::Try,
+            "throw" => TokenKind::Throw,
+            "defer" => TokenKind::Defer,
+            "true" => TokenKind::True,
+            "false" => TokenKind::False,
+            "null" => TokenKind::Null,
+            "import" => TokenKind::Import,
+            "export" => TokenKind::Export,
+            "as" => TokenKind::As,
+            _ => TokenKind::Ident,
+        };
+
+        Ok(kind)
     }
 
     fn skip_whitespace(&mut self) {

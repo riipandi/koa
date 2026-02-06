@@ -271,7 +271,7 @@ Koa is inspired by:
 
 ## Community
 
-- Website: httpskoalang.github.io/koa
+- Website: https://riipandi.github.io/koa
 - Repository: https://github.com/riipandi/koa
 - Issues: https://github.com/riipandi/koa/issues
 

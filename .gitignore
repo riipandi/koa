@@ -36,3 +36,7 @@ compose.env*
 
 # Miscelaneous
 /.notes
+/test_*.rs
+/debug_*.rs
+/*.koa
+/*.ll
