@@ -1,22 +1,5 @@
-.PHONY: all clean test watch run install help fmt check build debug release example
-.PHONY: cli pkg-init pkg-add pkg-list pkg-tree test-examples
-
-# Detect architecture
-UNAME_S := $(shell uname -s)
-UNAME_M := $(shell uname -m)
-
-ARCH := $(UNAME_M)
-ifeq ($(ARCH),x86_64)
-	ARCH := x86_64
-else ifeq ($(ARCH),aarch64)
-	ARCH := aarch64
-else ifeq ($(ARCH),arm64)
-	ARCH := aarch64
-endif
-
-BUILD_DIR := build
-DEBUG_DIR := $(BUILD_DIR)/debug/$(ARCH)
-RELEASE_DIR := $(BUILD_DIR)/release/$(ARCH)
+.PHONY: all build clean test watch run install fmt check clippy docs help
+.PHONY: build-koa build-cli test-koa test-cli
 
 # Default target
 all: build
@@ -41,7 +24,7 @@ build-release:
 test:
 	cargo test --workspace
 
-# Run tests for specific crate
+# Run tests for specific crates
 test-koa:
 	cargo test -p koa
 
@@ -60,24 +43,13 @@ run:
 version:
 	cargo run -p koa-cli -- --version
 
-# Install CLI to ~/.local/bin (for development)
+# Install the CLI using cargo
 install:
-	cargo build --release -p koa-cli
-	mkdir -p ~/.local/bin
-	cp -f target/release/koa ~/.local/bin/koa
-	chmod +x ~/.local/bin/koa
-
-# Install in release mode
-install-release:
-	cargo build --release -p koa-cli
-	mkdir -p ~/.local/bin
-	cp -f target/release/koa ~/.local/bin/koa
-	chmod +x ~/.local/bin/koa
+	cargo install --path crates/koa-cli
 
 # Clean build artifacts
 clean:
 	cargo clean
-	rm -rf $(BUILD_DIR)
 
 # Format code
 fmt:
@@ -86,12 +58,6 @@ fmt:
 # Check code without building
 check:
 	cargo check --workspace --all-targets
-
-check-koa:
-	cargo check -p koa --all-targets
-
-check-cli:
-	cargo check -p koa-cli --all-targets
 
 # Run linter
 clippy:
@@ -104,83 +70,9 @@ check-all: fmt check clippy
 docs:
 	cargo doc --no-deps --workspace --open
 
-# Build example in debug mode
-debug: build-cli
-	@mkdir -p $(DEBUG_DIR)
+# Development/Example shortcuts
+example: build-cli
 	cargo run -p koa-cli -- build examples/hello_world.koa
-	@echo "Built $(DEBUG_DIR)/hello_world"
-
-# Build example in release mode
-release: build-cli
-	@mkdir -p $(RELEASE_DIR)
-	cargo run -p koa-cli -- build examples/hello_world.koa --mode release
-	@echo "Built $(RELEASE_DIR)/hello_world"
-
-# Run example in debug mode
-example-hello: debug
-	$(DEBUG_DIR)/hello_world
-
-# Run example in release mode
-example-hello-release: release
-	$(RELEASE_DIR)/hello_world
-
-# Build simple example
-debug-simple: build-cli
-	@mkdir -p $(DEBUG_DIR)
-	cargo run -p koa-cli -- build examples/simple.koa
-	@echo "Built $(DEBUG_DIR)/simple"
-
-# Initialize a new project (interactive)
-pkg-init:
-	cargo run -p koa-cli -- init --interactive
-
-# Initialize a project with name
-pkg-init-name:
-	@read -p "Project name: " name; \
-	cargo run -p koa-cli -- init $$name
-
-# Add dependency
-pkg-add:
-	@read -p "Package name: " pkg; \
-	read -p "Git URL: " url; \
-	cargo run -p koa-cli -- pkg add $$pkg --git $$url
-
-# List dependencies
-pkg-list:
-	cargo run -p koa-cli -- pkg list
-
-# Show dependency tree
-pkg-tree:
-	cargo run -p koa-cli -- pkg tree
-
-# Fetch dependencies
-pkg-fetch:
-	cargo run -p koa-cli -- pkg fetch
-
-# Update dependencies
-pkg-update:
-	cargo run -p koa-cli -- pkg update
-
-# Show build directories
-info:
-	@echo "Build Configuration:"
-	@echo "  Architecture: $(ARCH)"
-	@echo "  Debug output: $(DEBUG_DIR)"
-	@echo "  Release output: $(RELEASE_DIR)"
-	@echo ""
-	@echo "Workspace Members:"
-	@echo "  - crates/koa (compiler library)"
-	@echo "  - crates/koa-cli (CLI tool)"
-	@echo "  - crates/koa-runtime (runtime)"
-	@echo ""
-	@echo "Platform: $(UNAME_S) $(UNAME_M)"
-
-# Development workflow
-dev: fmt check
-
-# Run development server (HMR for Koa code)
-dev-hmr:
-	cargo watch -x 'clear && cargo run -p koa-cli -- build examples/hello.koa'
 
 # Show help
 help:
@@ -188,21 +80,9 @@ help:
 	@echo ""
 	@echo "Building:"
 	@echo "  make build         - Build all workspace members"
+	@echo "  make build-release - Build in release mode"
 	@echo "  make build-koa     - Build compiler library only"
 	@echo "  make build-cli     - Build CLI tool only"
-	@echo "  make build-release - Build in release mode"
-	@echo ""
-	@echo "Examples:"
-	@echo "  make debug         - Build example in debug mode"
-	@echo "  make release       - Build example in release mode"
-	@echo "  make example-hello - Run example (debug)"
-	@echo ""
-	@echo "Package Management:"
-	@echo "  make pkg-init      - Interactive project init"
-	@echo "  make pkg-init-name - Init with project name"
-	@echo "  make pkg-add       - Add dependency"
-	@echo "  make pkg-list      - List dependencies"
-	@echo "  make pkg-tree      - Show dependency tree"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test          - Run all tests"
@@ -210,10 +90,10 @@ help:
 	@echo "  make test-cli      - Test CLI tool"
 	@echo ""
 	@echo "Development:"
+	@echo "  make run           - Run CLI help"
 	@echo "  make watch         - Watch for changes"
-	@echo "  make dev-hmr       - Dev server with HMR"
-	@echo "  make run           - Run CLI with --help"
-	@echo "  make version       - Show CLI version"
+	@echo "  make example       - Build example project"
+	@echo "  make install       - Install CLI using cargo"
 	@echo ""
 	@echo "Code Quality:"
 	@echo "  make fmt           - Format code"
@@ -224,9 +104,4 @@ help:
 	@echo ""
 	@echo "Maintenance:"
 	@echo "  make clean         - Clean build artifacts"
-	@echo "  make install       - Install CLI to ~/.local/bin"
-	@echo "  make install-release - Install in release mode"
-	@echo ""
-	@echo "Info:"
-	@echo "  make info          - Show build configuration"
 	@echo "  make help          - Show this help message"
