@@ -9,7 +9,7 @@ Semicolons are **required** at the end of statements, with exceptions:
 - **Required**: Variable declarations, function calls, assignments, control flow statements, return statements
 - **Not required**: After function definitions, struct definitions, enum definitions, if/else, loops, match arms
 
-```typescript
+```
 // Required
 let x: i32 = 42;
 println!("Hello");
@@ -48,7 +48,7 @@ if x > 0 {
 
 Koa uses `const` for immutable and `let` for mutable (like TypeScript's const/let):
 
-```typescript
+```
 // Immutable (default, recommended)
 const name: string = "Koa"
 const pi: f64 = 3.14159
@@ -70,7 +70,7 @@ let z: i32               // ERROR: must be initialized
 - `PascalCase` for types
 - No shadowing variables allowed
 
-```typescript
+```
 const user_name: string = "Alice"   // OK
 const UserName: string = "Bob"      // AVOID (use for types)
 fn calculate_sum(): i32 { }          // OK
@@ -90,7 +90,7 @@ fn example(): void {
 
 ### Integers
 
-```typescript
+```
 // Signed integers
 const a: i8 = 127
 const b: i16 = 32767
@@ -110,14 +110,14 @@ const j: usize = 100
 
 ### Floats
 
-```typescript
+```
 const x: f32 = 3.14
 const y: f64 = 3.14159265359
 ```
 
 ### Other Primitives
 
-```typescript
+```
 const b: bool = true
 const s: string = "Hello"
 const empty: void = ()
@@ -129,7 +129,7 @@ const empty: void = ()
 
 Struct is a data structure with fields. Methods are defined directly in the struct body (Zig-style):
 
-```typescript
+```
 // Basic struct
 pub struct Point {
     x: f64,
@@ -162,7 +162,7 @@ pub struct Point {
 
 ### Struct Initialization
 
-```typescript
+```
 // Positional (if fields are in order)
 let p1: Point = Point::new(1.0, 2.0)
 
@@ -179,7 +179,7 @@ println!("{}", p2.y)
 
 ### Generic Structs
 
-```typescript
+```
 pub struct Vec<T> {
     data: *mut T,
     len: usize,
@@ -207,7 +207,7 @@ pub struct Vec<T> {
 
 **IMPORTANT:** The `return` keyword is **required** for all return values. No implicit returns.
 
-```typescript
+```
 // No parameters, no return
 fn greet(): void {
     println!("Hello, World!");
@@ -231,7 +231,7 @@ fn add(x: i32, y: i32): i32 {
 
 ### Async Functions
 
-```typescript
+```
 async fn fetch_data(url: string): !Data {
     let response: HttpResponse = await http_get(url)
     response.data
@@ -240,7 +240,7 @@ async fn fetch_data(url: string): !Data {
 
 ### Generic Functions
 
-```typescript
+```
 fn identity<T>(x: T): T {
     x
 }
@@ -255,7 +255,7 @@ fn first<T>(arr: []T): T | null {
 
 ### Function Calls
 
-```typescript
+```
 // Regular call
 let result: i32 = add(10, 20)
 
@@ -273,7 +273,7 @@ let y: string = identity("hello")
 
 ### If/Else
 
-```typescript
+```
 fn max(a: i32, b: i32): i32 {
     if a > b {
         a;
@@ -285,7 +285,7 @@ fn max(a: i32, b: i32): i32 {
 
 ### Loops
 
-```typescript
+```
 // While loop
 while condition {
     // ...
@@ -307,7 +307,7 @@ loop {
 
 ### Defer
 
-```typescript
+```
 fn process_file(path: string): !void {
     let file: File = try File::open(path);
     defer file.close();  // Cleanup on exit
@@ -323,7 +323,7 @@ fn process_file(path: string): !void {
 
 ### Match Expression
 
-```typescript
+```
 enum Color {
     Red,
     Green,
@@ -341,7 +341,7 @@ fn describe(c: Color): string {
 
 ### Destructuring
 
-```typescript
+```
 struct Point {
     x: i32,
     y: i32,
@@ -359,7 +359,7 @@ fn match_point(p: Point): string {
 
 ### Wildcard
 
-```typescript
+```
 fn classify(n: i32): string {
     match n {
         0 => "Zero",
@@ -375,7 +375,7 @@ fn classify(n: i32): string {
 
 ### Error Sets
 
-```typescript
+```
 const FileError = error {
     NotFound,
     AccessDenied,
@@ -385,7 +385,7 @@ const FileError = error {
 
 ### Error Union Type
 
-```typescript
+```
 fn read_file(path: string): FileError!string {
     if !exists(path) {
         return error.NotFound
@@ -396,7 +396,7 @@ fn read_file(path: string): FileError!string {
 
 ### Try Operator
 
-```typescript
+```
 fn process(): !void {
     let data: string = try read_file("data.txt")
     println!("{}", data)
@@ -405,7 +405,7 @@ fn process(): !void {
 
 ### Catch Handler
 
-```typescript
+```
 fn main(): i32 {
     match process() {
         Ok(()) => 0,
@@ -427,7 +427,7 @@ fn main(): i32 {
 
 ### Type Parameters
 
-```typescript
+```
 fn identity<T>(x: T): T {
     x
 }
@@ -439,7 +439,7 @@ fn pair<T, U>(x: T, y: U): (T, U) {
 
 ### Generic Structs
 
-```typescript
+```
 struct Vec<T> {
     data: *mut T,
     len: usize,
@@ -452,7 +452,7 @@ struct Vec<T> {
 
 ### Type Inference
 
-```typescript
+```
 // Type inferred from usage
 let x: i32 = identity(42)
 let y: string = identity("hello")
@@ -464,7 +464,7 @@ let y: string = identity("hello")
 
 Conditional compilation annotations:
 
-```typescript
+```
 [@debug]
 fn log_debug(msg: string): void {
     println!("DEBUG: {}", msg)
@@ -497,7 +497,7 @@ fn with_sqlite(): void {
 
 Koa uses Rust-style comments:
 
-```typescript
+```
 // Single-line comment for inline documentation
 
 ///
@@ -551,7 +551,7 @@ fn helper(): void {
 
 ## Complete Example
 
-```typescript
+```
 import { println, Vec } from "std/io";
 
 ///

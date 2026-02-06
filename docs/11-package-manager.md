@@ -248,7 +248,7 @@ http = { git = "https://...", rev = "a1b2c3d" }
 
 ### Import External Packages
 
-```typescript
+```
 // src/main.koa
 import { HttpClient } from "http/client"
 import { parse_json } from "json/parser"
@@ -274,7 +274,7 @@ https://github.com/riipandi/koa-http
 ```
 
 `src/mod.koa`:
-```typescript
+```
 // Re-export public items
 pub { HttpClient, HttpResponse }
 ```

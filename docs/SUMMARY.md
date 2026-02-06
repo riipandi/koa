@@ -49,7 +49,7 @@
 
 ## Example
 
-```typescript
+```
 // Struct with methods in body
 pub struct Point {
     x: f64,
@@ -132,22 +132,29 @@ pub fn main(): i32 {
 
 ## Implementation Status
 
-### Completed (Phase 0)
+### Completed (Phase 0-1)
 - [x] Language specification
 - [x] Project structure setup
 - [x] Architecture decisions
 - [x] Documentation planning
-
-### In Progress
 - [x] Milestone 1: Lexer Implementation
 - [x] Milestone 2: Parser Implementation
 - [x] Milestone 3: AST definitions
 - [x] Milestone 4: Semantic Analysis & Type Checker
 - [x] Milestone 5: Intermediate Representation (IR)
-- [x] Milestone 6: LLVM IR Generation (Basic implementation done)
-- [ ] Milestone 7: Generics & Interfaces (Implementation started)
+- [x] Milestone 6: LLVM IR Generation (Basic implementation)
 
-### Planned
+### In Progress (Phase 2)
+- [x] Milestone 7: Generics & Interfaces - **Core Complete** ✅
+  - [x] Generic type parameters (functions & structs)
+  - [x] Interface declarations
+  - [x] Generic constraints (`T: Interface`)
+  - [x] Type substitution & monomorphization
+  - [x] Interface satisfaction checking
+  - [ ] LLVM codegen integration (Next)
+  - [ ] Type inference (Planned)
+
+### Planned (Phase 3+)
 - [ ] Milestone 8: Standard library
 - [ ] Milestone 9: Garbage collector
 - [ ] Milestone 10: Async/Await Runtime

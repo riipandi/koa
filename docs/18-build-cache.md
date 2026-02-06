@@ -49,7 +49,7 @@ The compiler tracks:
 
 **Example:**
 
-```typescript
+```
 // main.koa
 import { utils } from "std/utils";  // Depends on std/utils
 ```

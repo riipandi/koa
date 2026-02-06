@@ -46,7 +46,7 @@ library/std/
 ```
 
 **Import Examples:**
-```typescript
+```
 // Physical file: library/std/io/io.koa
 import { println } from "std/io"
 
@@ -62,7 +62,7 @@ import { Vec } from "std/collections/vec"
 
 Input/output operations:
 
-```typescript
+```
 import { print, println, File } from "std/io/mod"
 
 // Print functions
@@ -86,7 +86,7 @@ async fn read_file(path: string): !string {
 
 Dynamic array:
 
-```typescript
+```
 import { Vec } from "std/collections/vec"
 
 fn main(): i32 {
@@ -108,7 +108,7 @@ fn main(): i32 {
 
 Hash map:
 
-```typescript
+```
 import { HashMap } from "std/collections/hashmap"
 
 fn main(): i32 {
@@ -129,7 +129,7 @@ fn main(): i32 {
 
 HTTP client:
 
-```typescript
+```
 import { http_get, http_post } from "std/net/http"
 
 async fn fetch_example(): !string {
@@ -147,7 +147,7 @@ async fn post_data(): !HttpResponse {
 
 Common error types:
 
-```typescript
+```
 import { IOError, ParseError } from "std/error/mod"
 
 fn read_config(): !(IOError | ParseError) {
@@ -159,7 +159,7 @@ fn read_config(): !(IOError | ParseError) {
 
 Time operations:
 
-```typescript
+```
 import { sleep, timestamp } from "std/time/mod"
 
 async fn wait(): !void {
@@ -184,7 +184,7 @@ fn measure<T>(f: fn(): T): T {
 
 Optional value (explicit nullable):
 
-```typescript
+```
 enum Option<T> {
     Some(T),
     None,
@@ -202,7 +202,7 @@ fn find_user(id: i32): Option<User> {
 
 Error handling:
 
-```typescript
+```
 enum Result<T, E> {
     Ok(T),
     Err(E),
@@ -222,7 +222,7 @@ fn divide(a: f64, b: f64): Result<f64, string> {
 
 ### String Operations
 
-```typescript
+```
 // Concatenation
 let message: string = "Hello" + " " + "World"
 
@@ -237,7 +237,7 @@ if message == "Hello World" {
 
 ### Math Functions
 
-```typescript
+```
 import { sqrt, pow, sin, cos } from "std/math/mod"
 
 fn calculate(): f64 {
@@ -253,7 +253,7 @@ fn calculate(): f64 {
 
 ### 1. Web Server
 
-```typescript
+```
 import { println, http_get } from "std/io"
 import { HashMap } from "std/collections"
 
@@ -276,7 +276,7 @@ async fn main(): !void {
 
 ### 2. File Processing
 
-```typescript
+```
 import { File } from "std/io/mod"
 import { Vec } from "std/collections/vec"
 
@@ -300,7 +300,7 @@ async fn process_lines(path: string): !Vec<string> {
 
 ### 3. Configuration
 
-```typescript
+```
 import { HashMap } from "std/collections/hashmap"
 
 struct Config {
@@ -333,7 +333,7 @@ fn load_config(): !Config {
 
 All stdlib functions return error unions:
 
-```typescript
+```
 fn read_file(path: string): !string  // NOT: string
 fn parse<T>(s: string): !T          // NOT: T
 ```
@@ -342,7 +342,7 @@ fn parse<T>(s: string): !T          // NOT: T
 
 Resources are returned and caller must cleanup:
 
-```typescript
+```
 fn open_file(path: string): !File {
     // ...
 }
@@ -358,7 +358,7 @@ fn main(): !void {
 
 I/O operations are async:
 
-```typescript
+```
 async fn read_file(path: string): !string {
     // ...
 }

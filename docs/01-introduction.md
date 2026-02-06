@@ -26,7 +26,7 @@
 
 Koa adopts syntax and concepts from TypeScript:
 
-```typescript
+```
 // Variables (like TypeScript's const/let)
 const x: i32 = 42        // Immutable
 let y: f64 = 3.14        // Mutable
@@ -62,7 +62,7 @@ Koa has **Concurrent Mark-Sweep Garbage Collector** (Go-style):
 - **No manual free** - No need to deallocate memory
 - **Programmatic control** - Adjust GC behavior via API
 
-```typescript
+```
 // No need to free! GC handles it.
 fn create_nodes(count: i32): Vec<Node> {
     let nodes: Vec<Node> = Vec::new();
@@ -130,7 +130,7 @@ Koa is **not** for:
 
 ### Variables
 
-```typescript
+```
 // TypeScript
 const x: number = 42;
 let y: string = "hello";
@@ -142,7 +142,7 @@ let y: string = "hello";
 
 ### Structs & Methods
 
-```typescript
+```
 // TypeScript
 class Point {
     constructor(public x: number, public y: number) {}
@@ -169,7 +169,7 @@ struct Point {
 
 ### Error Handling
 
-```typescript
+```
 // TypeScript
 try {
     something();
@@ -195,7 +195,7 @@ fn main(): i32 {
 
 ### Async
 
-```typescript
+```
 // TypeScript
 async function fetch(): Promise<Data> {
     const response = await httpGet(url);
@@ -211,7 +211,7 @@ async fn fetch(): !Data {
 
 ### Naming Convention
 
-```typescript
+```
 // TypeScript (camelCase)
 const userName = "Alice";
 function calculateSum() { }
@@ -223,7 +223,7 @@ fn calculate_sum() { }
 
 ### Return Keyword
 
-```typescript
+```
 // TypeScript (implicit return allowed)
 const add = (x, y) => x + y;
 

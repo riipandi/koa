@@ -472,6 +472,9 @@ impl TypeChecker {
                         if args.len() != s.type_params.len() {
                             return Err(miette::miette!("Struct '{}' expects {} type arguments, but {} were provided", struct_expr.name, s.type_params.len(), args.len()));
                         }
+                        // Check generic constraints
+                        self.check_constraints(&s.type_params, args)?;
+
                         for (i, param) in s.type_params.iter().enumerate() {
                             substitution.insert(param.name.clone(), args[i].clone());
                         }
@@ -556,6 +559,9 @@ impl TypeChecker {
                             if args.len() != method.type_params.len() {
                                 return Err(miette::miette!("Method '{}' expects {} type arguments, but {} were provided", method.name, method.type_params.len(), args.len()));
                             }
+                            // Check constraints
+                            self.check_constraints(&method.type_params, args)?;
+
                             for (i, param) in method.type_params.iter().enumerate() {
                                 substitution.insert(param.name.clone(), args[i].clone());
                             }
@@ -593,6 +599,9 @@ impl TypeChecker {
                                 if args.len() != fn_decl.type_params.len() {
                                     return Err(miette::miette!("Method '{}' expects {} type arguments, but {} were provided", fn_decl.name, fn_decl.type_params.len(), args.len()));
                                 }
+                                // Check constraints
+                                self.check_constraints(&fn_decl.type_params, args)?;
+
                                 for (i, param) in fn_decl.type_params.iter().enumerate() {
                                     substitution.insert(param.name.clone(), args[i].clone());
                                 }
@@ -639,6 +648,9 @@ impl TypeChecker {
                     if args.len() != fn_decl.type_params.len() {
                         return Err(miette::miette!("Function '{}' expects {} type arguments, but {} were provided", name, fn_decl.type_params.len(), args.len()));
                     }
+                    // Check constraints
+                    self.check_constraints(&fn_decl.type_params, args)?;
+
                     for (i, param) in fn_decl.type_params.iter().enumerate() {
                         substitution.insert(param.name.clone(), args[i].clone());
                     }
@@ -670,6 +682,10 @@ impl TypeChecker {
         }
 
         match (from, to) {
+            // Check if from satisfies to (if to is an interface)
+            (Type::Named(_), Type::Named(to_name)) if self.interfaces.contains_key(to_name) => {
+                self.satisfies_interface(from, to).is_ok()
+            }
             // Null to Optional
             (Type::Void, Type::Optional(_)) => true,
             // Empty array to any array type
@@ -723,6 +739,44 @@ impl TypeChecker {
                 Type::Function(new_ps, Box::new(self.substitute_type(rs, sub)))
             }
             _ => ty.clone(),
+        }
+    }
+
+    fn check_constraints(&self, params: &[TypeParameter], args: &[Type]) -> Result<()> {
+        for (i, param) in params.iter().enumerate() {
+            let arg = &args[i];
+            for constraint in &param.constraints {
+                self.satisfies_interface(arg, constraint)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn satisfies_interface(&self, type_: &Type, interface: &Type) -> Result<()> {
+        match (type_, interface) {
+            (Type::Named(type_name), Type::Named(interface_name)) => {
+                let iface = self.interfaces.get(interface_name).cloned()
+                    .ok_or_else(|| miette::miette!("Undefined interface '{}'", interface_name))?;
+                
+                // If it's a struct, check its methods
+                if let Some(s) = self.structs.get(type_name).cloned() {
+                    for iface_method in &iface.methods {
+                        let struct_method = s.methods.iter().find(|m| m.name == iface_method.name)
+                            .ok_or_else(|| miette::miette!("Type '{}' does not implement method '{}' required by interface '{}'", type_name, iface_method.name, interface_name))?;
+                        
+                        // Check signature match
+                        if struct_method.params.len() != iface_method.params.len() {
+                             return Err(miette::miette!("Method '{}' in type '{}' has {} parameters, but interface '{}' expects {}", iface_method.name, type_name, struct_method.params.len(), interface_name, iface_method.params.len()));
+                        }
+                        // Note: For now we don't check exact types as it might require self-substitution, but at least names/counts should match.
+                        // Ideally we should check if is_assignable(struct_method_sig, iface_method_sig)
+                    }
+                    Ok(())
+                } else {
+                    Err(miette::miette!("Type '{:?}' is not a struct and cannot implement interface '{}'", type_, interface_name))
+                }
+            }
+            _ => Err(miette::miette!("Interface constraints must be named interfaces, found {:?} : {:?}", type_, interface)),
         }
     }
 }

@@ -47,7 +47,7 @@ Concurrent Mark-Sweep GC with tri-color marking:
 
 ### Heap Allocation
 
-```typescript
+```
 fn create_node(value: i32): *Node {
     let node: *Node = alloc(Node)  // Heap allocation
     node.value = value
@@ -59,7 +59,7 @@ fn create_node(value: i32): *Node {
 
 ### Stack Allocation
 
-```typescript
+```
 fn example(): void {
     let x: i32 = 42  // Stack allocation
     let p: Point = Point::new(1.0, 2.0)  // Stack allocation
@@ -73,7 +73,7 @@ fn example(): void {
 
 Dijkstra write barrier (Go-style):
 
-```typescript
+```
 // Write barrier: shade object when storing pointer
 fn write_barrier<T>(slot: *T, value: T): void {
     if GC.is_marking() && is_white(value) {
@@ -141,7 +141,7 @@ koa run --gc-debug
 
 The `std/runtime/gc` module provides runtime control:
 
-```typescript
+```
 import { gc } from "std/runtime";
 
 fn main(): i32 {
@@ -199,7 +199,7 @@ export KOA_GC_LIMIT=2GB
 
 The `gc::stats()` function returns:
 
-```typescript
+```
 struct GCStats {
     heap_size: u64,        // Current heap size (bytes)
     gc_count: u64,         // Number of GC runs
@@ -256,7 +256,7 @@ The following Go-style features are **NOT** supported in Koa:
 
 ### 1. Minimize Allocations
 
-```typescript
+```
 // BAD: Allocate in loop
 for i in 0..1000 {
     let temp: Vec<i32> = Vec::new()  // 1000 allocations
@@ -273,7 +273,7 @@ for i in 0..1000 {
 
 ### 2. Limit Object Lifetime
 
-```typescript
+```
 fn process(): void {
     let data: Vec<u8> = Vec::new()
     // ...
@@ -283,7 +283,7 @@ fn process(): void {
 
 ### 3. Avoid Large Temporary Allocations
 
-```typescript
+```
 // BAD: Large temporary
 fn process(): Vec<i32> {
     let large: Vec<i32> = Vec::with_capacity(1000000)
@@ -304,7 +304,7 @@ fn process(buffer: *mut Vec<i32>): void {
 
 Compiler performs escape analysis to determine stack vs heap allocation:
 
-```typescript
+```
 fn example(): *Point {
     // ESCAPES: Returned, must be heap
     let p: Point = Point::new(1.0, 2.0)
@@ -324,7 +324,7 @@ fn example2(): void {
 
 Compiler generates stack maps for precise root scanning:
 
-```typescript
+```
 // Stack map entry:
 // { fn: "example", offset: 0x10, slots: [8, 16, 24] }
 
@@ -343,7 +343,7 @@ fn example(): void {
 
 Optional: Finalizers for cleanup (rarely needed):
 
-```typescript
+```
 // Future feature
 fn register_finalizer<T>(obj: *T, finalizer: fn(*T)): void {
     // ...

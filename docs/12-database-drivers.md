@@ -26,7 +26,7 @@ Phase 2+ (Future):
 
 ## Importing Drivers
 
-```typescript
+```
 // SQLite driver
 import { SqliteConnection, SqliteResult } from "driver/sqlite"
 
@@ -40,7 +40,7 @@ import { PostgresConnection, PostgresResult } from "driver/postgres"
 
 ### Connection
 
-```typescript
+```
 import { SqliteConnection } from "driver/sqlite"
 
 async fn main(): !void {
@@ -56,7 +56,7 @@ async fn main(): !void {
 
 ### Queries
 
-```typescript
+```
 import { SqliteConnection } from "driver/sqlite"
 
 async fn example(): !void {
@@ -88,7 +88,7 @@ async fn example(): !void {
 
 ### Transactions
 
-```typescript
+```
 async fn transfer(db: SqliteConnection, from: i32, to: i32, amount: i32): !void {
     // Start transaction
     try db.begin_transaction()
@@ -121,7 +121,7 @@ async fn transfer(db: SqliteConnection, from: i32, to: i32, amount: i32): !void 
 
 ### Connection
 
-```typescript
+```
 import { PostgresConnection } from "driver/postgres"
 
 async fn main(): !void {
@@ -136,7 +136,7 @@ async fn main(): !void {
 
 ### Queries
 
-```typescript
+```
 import { PostgresConnection } from "driver/postgres"
 
 async fn example(): !void {
@@ -170,7 +170,7 @@ async fn example(): !void {
 
 ### Prepared Statements
 
-```typescript
+```
 async fn prepared_statements(conn: PostgresConnection): !void {
     // Prepare statement
     let stmt: PreparedStatement = try conn.prepare(
@@ -190,7 +190,7 @@ async fn prepared_statements(conn: PostgresConnection): !void {
 
 ### Transactions
 
-```typescript
+```
 async fn transfer(conn: PostgresConnection, from: i32, to: i32, amount: i32): !void {
     // Start transaction
     try conn.begin()
@@ -223,7 +223,7 @@ async fn transfer(conn: PostgresConnection, from: i32, to: i32, amount: i32): !v
 
 ### Generic Database Trait
 
-```typescript
+```
 pub interface Database {
     fn execute(sql: string, params: []any): !void
     fn query(sql: string, params: []any): !Result
@@ -235,7 +235,7 @@ pub interface Database {
 
 ### Usage
 
-```typescript
+```
 async fn process_users<D: Database>(db: D): !void {
     // Works with SQLite or Postgres
     try db.execute("CREATE TABLE users ...")
@@ -250,7 +250,7 @@ async fn process_users<D: Database>(db: D): !void {
 
 ### SQLite Pool
 
-```typescript
+```
 import { SqlitePool } from "driver/sqlite"
 
 async fn example(): !void {
@@ -268,7 +268,7 @@ async fn example(): !void {
 
 ### Postgres Pool
 
-```typescript
+```
 import { PostgresPool } from "driver/postgres"
 
 async fn example(): !void {
@@ -293,7 +293,7 @@ async fn example(): !void {
 
 Future: Built-in ORM for type-safe queries
 
-```typescript
+```
 // Future feature
 #[derive(Table)]
 struct User {
@@ -333,7 +333,7 @@ koa migration down
 
 ### Database Errors
 
-```typescript
+```
 const DbError = error {
     ConnectionFailed,
     QueryFailed,
@@ -344,7 +344,7 @@ const DbError = error {
 
 ### Example
 
-```typescript
+```
 async fn safe_query(db: SqliteConnection): !void {
     match db.query("SELECT * FROM users") {
         Ok(rows) => {
@@ -370,7 +370,7 @@ async fn safe_query(db: SqliteConnection): !void {
 
 ### 1. Use Connection Pools
 
-```typescript
+```
 // GOOD: Use pool
 let pool: SqlitePool = try SqlitePool::new("db.db", 5)
 let conn: SqliteConnection = try pool.acquire()
@@ -381,7 +381,7 @@ let conn: SqliteConnection = try SqliteConnection::open("db.db")
 
 ### 2. Always Handle Transactions
 
-```typescript
+```
 // GOOD: Proper transaction handling
 try db.begin()
 errdefer { try db.rollback() }
@@ -393,7 +393,7 @@ db.begin()  // Error ignored
 
 ### 3. Use Prepared Statements
 
-```typescript
+```
 // GOOD: Prepared statement
 let stmt: PreparedStatement = try conn.prepare("SELECT * FROM users WHERE id = $1")
 
@@ -453,7 +453,7 @@ src/driver/
 
 ### Web Service with Database
 
-```typescript
+```
 import { PostgresPool } from "driver/postgres"
 import { http_get, http_post } from "std/net/http"
 

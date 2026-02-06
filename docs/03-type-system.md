@@ -15,7 +15,7 @@ Koa has a static type system with hybrid approach: structural for primitives, no
 
 ### Integers
 
-```typescript
+```
 i8, i16, i32, i64      // Signed: 8, 16, 32, 64 bit
 u8, u16, u32, u64      // Unsigned: 8, 16, 32, 64 bit
 isize, usize           // Pointer-sized
@@ -23,14 +23,14 @@ isize, usize           // Pointer-sized
 
 ### Floats
 
-```typescript
+```
 f32  // IEEE 754 binary32
 f64  // IEEE 754 binary64
 ```
 
 ### Other
 
-```typescript
+```
 bool    // true or false
 string  // UTF-8 string
 void    // Unit type, single value ()
@@ -42,7 +42,7 @@ void    // Unit type, single value ()
 
 ### Structural Typing (Primitives)
 
-```typescript
+```
 // Primitives: structural compatibility
 let x: i32 = 42
 let y: i64 = x  // OK: widening conversion
@@ -53,7 +53,7 @@ let b: f32 = a  // ERROR: narrowing, requires explicit cast
 
 ### Nominal Typing (Structs/Enums)
 
-```typescript
+```
 struct Point2D {
     x: f64,
     y: f64,
@@ -77,7 +77,7 @@ accept(p3d)  // ERROR: expected Point2D, found Point3D
 
 Koa doesn't have `null` as an implicit value. Use explicit nullable:
 
-```typescript
+```
 // Explicit nullable
 fn find_user(id: i32): User | null {
     match database.query(id) {
@@ -98,7 +98,7 @@ match user {
 
 ## Array and Slice Types
 
-```typescript
+```
 // Fixed-size array
 let arr: [i32; 3] = [1, 2, 3]
 
@@ -113,7 +113,7 @@ let vec: Vec<i32> = Vec::new()
 
 ## Pointer Types
 
-```typescript
+```
 // Mutable pointer
 let x: i32 = 42
 let ptr: *mut i32 = &x
@@ -130,7 +130,7 @@ let ptr: *mut User | null = get_user_pointer()
 
 ## Function Types
 
-```typescript
+```
 // Function type
 type Callback = fn(i32, i32): i32
 
@@ -147,9 +147,11 @@ type AsyncCallback = async fn(string): !void
 
 ## Interfaces (Structural)
 
-Koa uses **Structural Interfaces** (similar to Go) to define behavior.
+**Status**: ✅ Implemented (Phase 2)
 
-```typescript
+Koa uses **Structural Interfaces** (similar to Go/TypeScript) to define behavior contracts. Types implicitly satisfy interfaces if they implement all required methods.
+
+```
 // Interface definition
 interface Stringer {
     fn to_string(self): string;
@@ -157,14 +159,65 @@ interface Stringer {
 
 // Struct implicitly implements if methods match
 struct Point {
-    x: i32,
-    y: i32,
+    x: i32;
+    y: i32;
 
     pub fn to_string(self): string {
-        return "Point(" + self.x + ", " + self.y + ")"
+        return "Point(" + self.x + ", " + self.y + ")";
+    }
+}
+
+// Point automatically satisfies Stringer
+fn print_any<T: Stringer>(item: T): void {
+    println!("{}", item.to_string());
+    return;
+}
+```
+
+### Generic Interfaces
+
+```
+interface Container<T> {
+    fn get(self): T;
+    fn set(self, value: T): void;
+}
+
+struct Box<T> {
+    value: T;
+
+    fn get(self): T {
+        return self.value;
+    }
+
+    fn set(self, value: T): void {
+        self.value = value;
+        return;
     }
 }
 ```
+
+### Interface Satisfaction Checking
+
+The compiler automatically verifies that types satisfy interface requirements:
+
+```
+interface Drawable {
+    fn draw(self): void;
+}
+
+struct Circle {
+    radius: f64;
+    // Missing draw() method
+}
+
+fn render<T: Drawable>(shape: T): void {
+    shape.draw();
+    return;
+}
+
+render<Circle>(circle);  // ❌ ERROR: Circle does not implement 'draw'
+```
+
 
 ---
 
@@ -172,7 +225,7 @@ struct Point {
 
 ### Always Explicit
 
-```typescript
+```
 // Variables: type annotation required
 const x: i32 = 42           // OK
 let y: f64 = 3.14           // OK
@@ -195,53 +248,147 @@ fn identity<T>(x: T): T {  // OK
 
 ## Generics
 
+**Status**: ✅ Implemented (Phase 2)
+
+Koa supports full generic programming with type parameters, constraints, and monomorphization.
+
 ### Type Parameters
 
-```typescript
+```
 // Generic function
 fn identity<T>(x: T): T {
-    x
+    return x;
 }
+
+// Usage with explicit type arguments
+let x: i32 = identity<i32>(42);
+let y: f64 = identity<f64>(3.14);
 
 // Multiple type parameters
 fn pair<T, U>(x: T, y: U): (T, U) {
-    (x, y)
+    return (x, y);
 }
 ```
 
 ### Generic Structs
 
-```typescript
-struct Vec<T> {
-    data: *mut T,
-    len: usize,
-    cap: usize,
+```
+struct Box<T> {
+    value: T;
+}
 
-    pub fn new<T>(): Vec<T> {
-        Vec {
+// Instantiation with type arguments
+let int_box: Box<i32> = Box<i32> { value: 42 };
+let str_box: Box<string> = Box<string> { value: "hello" };
+
+// Generic struct with methods
+struct Vec<T> {
+    data: *mut T;
+    len: usize;
+    cap: usize;
+
+    pub fn new(): Vec<T> {
+        return Vec {
             data: null,
             len: 0,
             cap: 0,
-        }
+        };
+    }
+
+    pub fn push(self, item: T): void {
+        // Implementation
+        return;
     }
 }
 ```
 
-### Constraints (Interfaces)
+### Generic Constraints (Interfaces)
 
-Generics can be constrained using Interfaces:
+Generics can be constrained using Interfaces to ensure type safety:
 
-```typescript
-// T must implement Stringer
-fn print<T: Stringer>(item: T): void {
-    println(item.to_string())
+```
+// Define an interface
+interface Printable {
+    fn print(self): void;
 }
 
-// Multiple constraints
-fn compare<T: Equatable + Comparable>(a: T, b: T): bool {
-    // ...
+// Struct implementing the interface
+struct Book {
+    title: string;
+    
+    fn print(self): void {
+        println!("Book: {}", self.title);
+        return;
+    }
+}
+
+// Generic function with constraint
+fn show<T: Printable>(item: T): void {
+    item.print();
+    return;
+}
+
+// Valid: Book implements Printable
+let book: Book = Book { title: "Koa Guide" };
+show<Book>(book);  // ✅ OK
+
+// Invalid: i32 does not implement Printable
+show<i32>(42);  // ❌ ERROR: i32 does not implement Printable
+```
+
+### Multiple Constraints
+
+```
+interface Comparable {
+    fn compare(self, other: Self): i32;
+}
+
+interface Equatable {
+    fn equals(self, other: Self): bool;
+}
+
+// Multiple constraints with +
+fn sort<T: Comparable + Equatable>(items: []T): void {
+    // Can use both compare() and equals()
+    return;
 }
 ```
+
+### Monomorphization
+
+Koa uses **monomorphization** (like Rust) instead of runtime generics:
+
+```
+fn identity<T>(x: T): T {
+    return x;
+}
+
+fn main(): void {
+    identity<i32>(42);   // Generates: identity<I32>
+    identity<f64>(3.14); // Generates: identity<F64>
+    return;
+}
+```
+
+**Compiled IR**:
+```
+fn identity<I32>(x: i32): i32 { return x; }
+fn identity<F64>(x: f64): f64 { return x; }
+fn main(): void { ... }
+```
+
+**Benefits**:
+- Zero runtime overhead
+- Full type safety at compile time
+- Optimized code for each type
+- No vtables or dynamic dispatch needed
+
+**Trade-offs**:
+- Larger binary size (one copy per type)
+- Longer compilation time
+- No runtime polymorphism
+
+
 
 ---
 
@@ -249,7 +396,7 @@ fn compare<T: Equatable + Comparable>(a: T, b: T): bool {
 
 ### Safe Coercions (Implicit)
 
-```typescript
+```
 // Widening: OK
 let x: i32 = 42
 let y: i64 = x  // OK
@@ -261,7 +408,7 @@ let b: f64 = a  // OK
 
 ### Unsafe Casts (Explicit)
 
-```typescript
+```
 // Narrowing: explicit cast required
 let x: i64 = 42
 let y: i32 = @int_cast(i32, x)  // Explicit
@@ -277,7 +424,7 @@ let bytes: *mut u8 = @ptr_cast(*mut u8, ptr)
 
 ### Limited Inference
 
-```typescript
+```
 // Function return inference (minimal)
 fn add(x: i32, y: i32): i32 {
     x + y  // Return type inferred from body
@@ -291,7 +438,7 @@ let x = 42  // ERROR: type annotation required
 
 ## Enum Types
 
-```typescript
+```
 enum Color {
     Red,
     Green,
@@ -314,7 +461,7 @@ enum Result<T, E> {
 
 ## Tuple Types
 
-```typescript
+```
 // Pair
 let pair: (i32, string) = (42, "hello")
 
@@ -329,7 +476,7 @@ let (x, y) = pair
 
 ## Type Aliases
 
-```typescript
+```
 // Type alias
 type UserId = i32
 type Username = string

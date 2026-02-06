@@ -33,7 +33,7 @@ src/
 
 ### Simple Module
 
-```typescript
+```
 // utils.koa
 pub fn greet(name: string): string {
     "Hello, " + name
@@ -46,7 +46,7 @@ fn private_helper(): void {
 
 ### Module with Submodules
 
-```typescript
+```
 // math/operations.koa
 pub fn add(x: i32, y: i32): i32 {
     x + y
@@ -63,7 +63,7 @@ pub fn multiply(x: i32, y: i32): i32 {
 
 ### Named Imports
 
-```typescript
+```
 // main.koa
 import { greet } from "utils"
 
@@ -76,21 +76,21 @@ fn main(): i32 {
 
 ### Multiple Imports
 
-```typescript
+```
 import { greet, farewell } from "utils"
 import { Vec, HashMap } from "std/collections"
 ```
 
 ### Aliased Imports
 
-```typescript
+```
 import { greet as say_hello } from "utils"
 import { Vec as Vector } from "std/collections"
 ```
 
 ### Module Import (Import All)
 
-```typescript
+```
 // Import all public items
 import * as utils from "utils"
 
@@ -103,7 +103,7 @@ utils.greet("World")
 
 ### Public Items
 
-```typescript
+```
 // utils.koa
 pub fn public_function(): void {
     // ...
@@ -120,7 +120,7 @@ struct PrivateStruct {
 
 ### Re-exports
 
-```typescript
+```
 // std/lib.koa
 import { Vec } from "collections/vec"
 import { HashMap } from "collections/hashmap"
@@ -137,7 +137,7 @@ pub { Vec, HashMap }
 
 **Koa does NOT support relative imports** like `../utils` or `./helper`. All imports must be absolute.
 
-```typescript
+```
 // ❌ NOT SUPPORTED
 import { helper } from "../utils"       // ERROR: relative paths not allowed
 import { something } from "./sibling"  // ERROR: relative paths not allowed
@@ -147,7 +147,7 @@ import { something } from "./sibling"  // ERROR: relative paths not allowed
 
 All imports are resolved from the project root or external dependencies:
 
-```typescript
+```
 // src/main.koa
 
 // Stdlib imports
@@ -167,7 +167,7 @@ import { parse_json } from "koa_json"
 
 ### Public (`pub`)
 
-```typescript
+```
 pub struct Point {
     pub x: f64,    // Public field
     y: f64,        // Private field
@@ -186,7 +186,7 @@ impl Point {
 
 ### Private (default)
 
-```typescript
+```
 // Default: private
 fn internal_helper(): void {
     // Only accessible in the same module
@@ -202,32 +202,32 @@ fn internal_helper(): void {
 Koa resolves imports in the following order:
 
 1. **Stdlib** (`std/*`)
-    ```typescript
+    ```
     import { Vec } from "std/collections/vec"
     // → library/std/collections/vec.koa
     ```
 
 2. **External Dependencies** (from `Koa.lock`)
-    ```typescript
+    ```
     import { parse_json } from "koa_json"
     // → ~/.koa/cache/packages/koa-json-0.1.0/src/lib.koa
     ```
 
 3. **Workspace Crates** (from `[workspace]` in `Koa.toml`)
-    ```typescript
+    ```
     import { utils } from "myapp_utils"
     // → crates/utils/src/lib.koa
     ```
 
 4. **Local Modules** (from `src/`)
-    ```typescript
+    ```
     import { operations } from "math/operations"
     // → src/math/operations.koa
     ```
 
 ### Examples
 
-```typescript
+```
 // Stdlib (always available)
 import { println } from "std/io"
 import { Vec, HashMap } from "std/collections"
@@ -258,7 +258,7 @@ http = { git = "https://github.com/custom/koa-http", version = "0.2.0" }
    ```
 
 3. **Module index**: `mod.koa` for directory
-   ```typescript
+   ```
    import { print } from "std/io"
    // → src/std/io/mod.koa (if exists)
    // → src/std/io.koa (fallback)
@@ -270,7 +270,7 @@ http = { git = "https://github.com/custom/koa-http", version = "0.2.0" }
 
 ### 1. Library Structure
 
-```typescript
+```
 // src/math/operations.koa
 pub fn add(x: i32, y: i32): i32 {
     x + y
@@ -281,7 +281,7 @@ pub fn multiply(x: i32, y: i32): i32 {
 }
 ```
 
-```typescript
+```
 // src/math/mod.koa
 import { add, multiply } from "./operations"
 
@@ -292,7 +292,7 @@ pub fn square(x: i32): i32 {
 }
 ```
 
-```typescript
+```
 // src/main.koa
 import { add, square } from "math/mod"
 
@@ -305,7 +305,7 @@ fn main(): i32 {
 
 ### 2. Standard Library Usage
 
-```typescript
+```
 // src/main.koa
 import { println, print } from "std/io/mod"
 import { Vec, HashMap } from "std/collections"
@@ -320,7 +320,7 @@ fn main(): i32 {
 
 ### 3. Aliasing
 
-```typescript
+```
 // src/main.koa
 import { Vec as Vector } from "std/collections/vec"
 import { fetch as http_get } from "std/net/http"
@@ -338,7 +338,7 @@ fn main(): i32 {
 
 ### 1. Descriptive Module Names
 
-```typescript
+```
 // GOOD
 import { http_get } from "std/net/http"
 
@@ -348,7 +348,7 @@ import { get } from "std/http"
 
 ### 2. Explicit Imports
 
-```typescript
+```
 // GOOD: Explicit
 import { Vec, HashMap } from "std/collections"
 

@@ -15,7 +15,7 @@ Koa has **C-compatible FFI** for interoperability with C libraries (like Rust's 
 
 ### Extern Function Declaration
 
-```typescript
+```
 // Declare external C function
 extern "C" fn printf(format: *const u8, ...) -> i32;
 extern "C" fn strlen(s: *const u8) -> usize;
@@ -25,7 +25,7 @@ extern "C" fn free(ptr: *mut u8) -> void;
 
 ### Usage
 
-```typescript
+```
 fn main(): i32 {
     // Call C function
     printf("Hello, World!\n".as_ptr())
@@ -63,7 +63,7 @@ fn main(): i32 {
 
 ### C String to Koa
 
-```typescript
+```
 extern "C" fn strlen(s: *const u8) -> usize;
 
 fn main(): i32 {
@@ -76,7 +76,7 @@ fn main(): i32 {
 
 ### Koa String to C
 
-```typescript
+```
 extern "C" fn strcpy(dest: *mut u8, src: *const u8) -> *mut u8;
 
 fn copy_to_c(s: string): *mut u8 {
@@ -92,7 +92,7 @@ fn copy_to_c(s: string): *mut u8 {
 
 ### extern struct
 
-```typescript
+```
 // C-compatible struct (explicit layout)
 extern struct Point {
     x: f64,
@@ -131,7 +131,7 @@ double point_distance(const Point* p1, const Point* p2);
 
 ### Function Pointers
 
-```typescript
+```
 // C function expecting callback
 extern "C" fn qsort(
     base: *mut u8,
@@ -170,7 +170,7 @@ fn sort_array(arr: []i32): void {
 
 ### Allocating Memory for C
 
-```typescript
+```
 extern "C" fn malloc(size: usize) -> *mut u8;
 extern "C" fn free(ptr: *mut u8);
 
@@ -185,7 +185,7 @@ fn free_c_buffer(ptr: *mut u8): void {
 
 ### Koa Objects to C
 
-```typescript
+```
 // Expose Koa object to C
 export "C" fn create_user(name: *const u8, age: i32) -> *mut User {
     let user: *mut User = alloc(User)
@@ -206,7 +206,7 @@ export "C" fn free_user(user: *mut User): void {
 
 ### export "C"
 
-```typescript
+```
 // Exported function callable from C
 export "C" fn add(a: i32, b: i32): i32 {
     a + b
@@ -285,7 +285,7 @@ mylib = { path = "./lib/mylib" }
 
 ### 1. OpenSSL Integration
 
-```typescript
+```
 extern "C" fn MD5_Init(c: *mut MD5_CTX) -> i32;
 extern "C" fn MD5_Update(c: *mut MD5_CTX, data: *const u8, len: usize) -> i32;
 extern "C" fn MD5_Final(md: *mut u8, c: *mut MD5_CTX) -> i32;
@@ -309,7 +309,7 @@ fn compute_md5(data: []u8): [u8; 16] {
 
 ### 2. libcurl HTTP
 
-```typescript
+```
 extern "C" fn curl_easy_init() -> *mut CURL;
 extern "C" fn curl_easy_setopt(curl: *mut CURL, option: CURLoption, ...) -> CURLcode;
 extern "C" fn curl_easy_perform(curl: *mut CURL) -> CURLcode;
@@ -337,7 +337,7 @@ async fn http_get(url: string): !string {
 
 ### 3. SQLite FFI
 
-```typescript
+```
 extern "C" fn sqlite3_open(filename: *const u8, db: **mut sqlite3) -> i32;
 extern "C" fn sqlite3_exec(
     db: *mut sqlite3,
@@ -373,7 +373,7 @@ fn create_table(db: *mut sqlite3): !void {
 
 ### 1. Use extern struct for C Compatibility
 
-```typescript
+```
 // GOOD: C-compatible layout
 extern struct Point {
     x: f64,
@@ -389,7 +389,7 @@ struct Point {
 
 ### 2. Check Return Values
 
-```typescript
+```
 // GOOD: Check error codes
 let result: i32 = sqlite3_open(db_path.as_ptr(), &db)
 if result != SQLITE_OK {
@@ -402,7 +402,7 @@ sqlite3_open(db_path.as_ptr(), &db)
 
 ### 3. Manual Memory Management
 
-```typescript
+```
 // GOOD: Explicit cleanup
 let ptr: *mut u8 = malloc(1024)
 defer free(ptr)
@@ -416,7 +416,7 @@ let ptr: *mut u8 = malloc(1024)
 
 ### 4. Type Conversion Helpers
 
-```typescript
+```
 // Helper for C string conversion
 fn c_string_to_koa(s: *const u8, len: usize): string {
     // Convert C string to Koa string
@@ -454,7 +454,7 @@ koa bindgen /usr/include/sqlite3.h --output sqlite3_bindings.koa
 
 ### C++ Integration (Phase 4)
 
-```typescript
+```
 extern "C++" fn vector_push(v: *mut std::vector, val: i32) -> void;
 ```
 

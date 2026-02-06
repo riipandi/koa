@@ -25,7 +25,7 @@ koa watch --hot
 
 The compiler watches for file changes and automatically recompiles:
 
-```typescript
+```
 // Watching for changes...
 // ✓ main.koa changed
 //   Compiling... (0.3s)
@@ -46,7 +46,7 @@ koa reload
 
 Only changed modules are recompiled:
 
-```typescript
+```
 // main.koa changed
 // Only main.koa is recompiled
 // Dependencies (utils.koa, etc.) remain cached
@@ -56,7 +56,7 @@ Only changed modules are recompiled:
 
 Application state is preserved across reloads:
 
-```typescript
+```
 // Before reload
 let counter: i32 = 42;
 
@@ -68,7 +68,7 @@ let counter: i32 = 42;
 
 Compilation errors don't crash the running application:
 
-```typescript
+```
 // main.koa has syntax error
 // ✗ main.koa:3: unexpected token
 // Application continues running with previous version
@@ -78,7 +78,7 @@ Compilation errors don't crash the running application:
 
 Rapid file changes are debounced to avoid excessive recompilation:
 
-```typescript
+```
 // Saving multiple times quickly
 // main.koa changed (debouncing...)
 // main.koa changed (debouncing...)
@@ -172,7 +172,7 @@ When a module changes, only it and modules that depend on it are recompiled.
 
 Application state is serialized before reload:
 
-```typescript
+```
 // Before reload
 let app = App { state: 42 };
 
@@ -203,7 +203,7 @@ let app = App { state: 42 };
 
 ### 1. Preserve State
 
-```typescript
+```
 // Use structures that can be serialized
 pub struct AppState {
     counter: i32,
@@ -216,7 +216,7 @@ static mut CACHED_VALUE: i32 = 0;  // Reset on reload
 
 ### 2. Stable Interfaces
 
-```typescript
+```
 // Keep function signatures stable
 pub fn process(data: Data): Result {
     // Implementation can change
@@ -226,7 +226,7 @@ pub fn process(data: Data): Result {
 
 ### 3. Error Handling
 
-```typescript
+```
 // Handle compilation errors gracefully
 // Continue with previous version on error
 fn main(): i32 {

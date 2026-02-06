@@ -15,7 +15,7 @@ Koa uses **Zig-style error handling**: error sets and error unions. No exception
 
 Error sets are enums for errors:
 
-```typescript
+```
 const FileError = error {
     NotFound,
     AccessDenied,
@@ -25,7 +25,7 @@ const FileError = error {
 
 ### Error Set Merging
 
-```typescript
+```
 const ReadError = error {
     InvalidData,
     Corrupted,
@@ -52,7 +52,7 @@ fn parse(): (FileError | ReadError)!Data {
 
 Syntax `Error!T` means "Error or T":
 
-```typescript
+```
 fn divide(a: f64, b: f64): !f64 {
     // ^ Means anyerror!f64 (error union with any error set)
     if b == 0.0 {
@@ -76,7 +76,7 @@ fn read_file(path: string): FileError!string {
 
 `try` unwraps error union or returns error:
 
-```typescript
+```
 fn process(): !void {
     // If read_file errors, error is propagated
     let data: string = try read_file("data.txt")
@@ -86,7 +86,7 @@ fn process(): !void {
 
 Equivalent to:
 
-```typescript
+```
 fn process(): !void {
     let data: string = read_file("data.txt") catch |err| {
         return err
@@ -101,7 +101,7 @@ fn process(): !void {
 
 `catch` handle errors:
 
-```typescript
+```
 fn main(): i32 {
     let result: string = read_file("data.txt") catch |err| {
         println!("Error: {}", err)
@@ -114,7 +114,7 @@ fn main(): i32 {
 
 ### Default Values
 
-```typescript
+```
 fn get_config(): Config | null {
     read_config() catch {
         return null  // Return null on error
@@ -141,7 +141,7 @@ error: NotFound
 
 `errdefer` only runs on error:
 
-```typescript
+```
 fn process_file(path: string): !void {
     let file: File = try File::open(path)
     errdefer file.close()  // Only close on error
@@ -160,7 +160,7 @@ fn process_file(path: string): !void {
 
 ### 1. File Operations
 
-```typescript
+```
 const FileError = error {
     NotFound,
     AccessDenied,
@@ -199,7 +199,7 @@ fn main(): i32 {
 
 ### 2. HTTP Request
 
-```typescript
+```
 const HttpError = error {
     InvalidUrl,
     ConnectionFailed,
@@ -217,7 +217,7 @@ async fn fetch(url: string): HttpError!string {
 
 ### 3. Validation
 
-```typescript
+```
 const ValidationError = error {
     InvalidEmail,
     InvalidPhone,
@@ -243,7 +243,7 @@ fn validate_user(user: User): ValidationError!void {
 
 ### Pattern 1: Propagate with `try`
 
-```typescript
+```
 fn process(): !void {
     let data: string = try read_file("data.txt")
     let parsed: Data = try parse(data)
@@ -253,7 +253,7 @@ fn process(): !void {
 
 ### Pattern 2: Handle with `match`
 
-```typescript
+```
 fn main(): i32 {
     match process() {
         Ok(()) => 0,
@@ -267,7 +267,7 @@ fn main(): i32 {
 
 ### Pattern 3: Provide Default
 
-```typescript
+```
 fn get_port(): i32 {
     get_env("PORT") catch |err| {
         8080  // Default port
@@ -277,7 +277,7 @@ fn get_port(): i32 {
 
 ### Pattern 4: Wrap Error
 
-```typescript
+```
 fn load_config(): !Config {
     let content: string = read_file("config.toml") catch |err| {
         return error.ConfigFailed  // Wrap error
@@ -292,7 +292,7 @@ fn load_config(): !Config {
 
 ### TypeScript
 
-```typescript
+```
 // TypeScript: try/catch
 try {
     const data = readFile(path)
@@ -344,7 +344,7 @@ let data: string = try read_file(path)
 
 ### 1. Always Handle Errors
 
-```typescript
+```
 // BAD: Ignore error
 let data: string = read_file(path) catch { }
 // ^ Error discarded
@@ -358,7 +358,7 @@ let data: string = read_file(path) catch |err| {
 
 ### 2. Use Descriptive Error Names
 
-```typescript
+```
 // BAD
 const E = error {
     A,
@@ -374,7 +374,7 @@ const FileError = error {
 
 ### 3. Defer Cleanup
 
-```typescript
+```
 fn process(): !void {
     let file: File = try File::open(path)
     defer file.close()  // Always cleanup
@@ -385,7 +385,7 @@ fn process(): !void {
 
 ### 4. Use errdefer for Conditional Cleanup
 
-```typescript
+```
 fn process(): !void {
     let file: File = try File::open(path)
     errdefer file.close()  // Only cleanup on error

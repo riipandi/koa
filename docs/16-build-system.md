@@ -107,7 +107,7 @@ test-utils = []
 
 **Usage in code:**
 
-```typescript
+```
 [@feature("database")]
 pub fn connect(): !Connection {
     // ...

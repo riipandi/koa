@@ -35,7 +35,7 @@ To share state safely, use standard synchronization primitives:
 
 ### Declaring Async Functions
 
-```typescript
+```
 async fn fetch_data(url: string): !Data {
     let response: HttpResponse = await http_get(url)
     response.data
@@ -44,7 +44,7 @@ async fn fetch_data(url: string): !Data {
 
 ### Calling Async Functions
 
-```typescript
+```
 async fn main(): !void {
     let data: Data = await fetch_data("https://api.example.com")
     println!("{}", data)
@@ -59,7 +59,7 @@ async fn main(): !void {
 
 Single-threaded event loop for async tasks:
 
-```typescript
+```
 // Event loop processes tasks sequentially
 fn event_loop(): void {
     loop {
@@ -76,7 +76,7 @@ fn event_loop(): void {
 
 Tasks are scheduled in the event loop:
 
-```typescript
+```
 fn spawn_async<T>(future: Future<T>): void {
     runtime.schedule(future)
 }
@@ -88,7 +88,7 @@ fn spawn_async<T>(future: Future<T>): void {
 
 Non-blocking I/O operations:
 
-```typescript
+```
 async fn read_file(path: string): !string {
     let file: File = await File::open_async(path)
     let content: string = await file.read_to_string_async()
@@ -102,7 +102,7 @@ async fn read_file(path: string): !string {
 
 ### 1. HTTP Server
 
-```typescript
+```
 async fn handle_request(req: HttpRequest): !HttpResponse {
     match req.path {
         "/" => HttpResponse::ok("Hello"),
@@ -122,7 +122,7 @@ async fn main(): !void {
 
 ### 2. Concurrent Requests
 
-```typescript
+```
 async fn fetch_multiple(urls: []string): !Vec<string> {
     let results: Vec<string> = Vec::new()
 
@@ -137,7 +137,7 @@ async fn fetch_multiple(urls: []string): !Vec<string> {
 
 ### 3. Timeout
 
-```typescript
+```
 async fn with_timeout<T>(
     future: Future<T>,
     timeout_ms: i32
@@ -166,7 +166,7 @@ Future considerations (Phase 5+):
 
 ### TypeScript
 
-```typescript
+```
 // TypeScript
 async function fetch(): Promise<Data> {
     const response = await httpGet(url)
@@ -218,7 +218,7 @@ spawn_async(async || {
 
 ### 1. Always Mark Async Functions
 
-```typescript
+```
 // BAD: Lupa async
 fn fetch(): Data {
     await http_get(url)  // ERROR: await outside async
@@ -232,7 +232,7 @@ async fn fetch(): Data {
 
 ### 2. Handle Errors in Async
 
-```typescript
+```
 async fn process(): !void {
     let data: Data = await fetch() catch {
         return error.FetchFailed
@@ -243,7 +243,7 @@ async fn process(): !void {
 
 ### 3. Avoid Blocking in Async
 
-```typescript
+```
 // BAD: Blocking call
 async fn fetch(): Data {
     let data: string = read_file_blocking(path)  // Blocks event loop!
@@ -263,7 +263,7 @@ async fn fetch(): Data {
 
 Potential addition in Phase 5:
 
-```typescript
+```
 // Goroutine
 go worker(1, channel)
 

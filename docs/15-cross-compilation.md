@@ -231,7 +231,7 @@ koa build
 
 Code can be conditionally compiled based on target:
 
-```typescript
+```
 // Linux-specific code
 [@target(os = "linux")]
 pub fn get_config_path(): string {
@@ -258,7 +258,7 @@ pub fn get_config_path(): string {
 
 **Available annotations:**
 
-```typescript
+```
 [@target(os = "linux")]
 [@target(os = "macos")]
 [@target(os = "windows")]
@@ -275,7 +275,7 @@ pub fn get_config_path(): string {
 
 Cross-compilation affects FFI:
 
-```typescript
+```
 // C library header
 // extern int add(int a, int b);
 

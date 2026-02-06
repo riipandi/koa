@@ -21,7 +21,7 @@ Use `snake_case` for variables and functions, `PascalCase` for types.
 - Clear distinction between types and values
 
 **Consequences:**
-```typescript
+```
 // Variables and functions
 const user_name: string = "Alice";
 fn calculate_sum(): i32 { }
@@ -56,7 +56,7 @@ The `return` keyword is **required** for all return values. No implicit returns.
 - Compiler can still optimize tail calls
 
 **Consequences:**
-```typescript
+```
 // ✅ CORRECT
 fn add(x: i32, y: i32): i32 {
     return x + y;
@@ -97,7 +97,7 @@ Module imports must be absolute. No relative paths allowed.
 - Simpler tooling
 
 **Consequences:**
-```typescript
+```
 // ✅ CORRECT
 import { serve } from "std/net/http";
 import { utils } from "myapp_utils";
@@ -176,7 +176,7 @@ Use Koa-specific naming:
 - More flexibility for future configuration
 
 **Consequences:**
-```typescript
+```
 // CLI
 koa run --gc-percent=200
 koa run --gc-limit=2GB
@@ -217,7 +217,7 @@ Do not support arrow function syntax. Use regular `fn` keyword.
 - Consistent with other systems languages (Rust, Go, Zig)
 
 **Consequences:**
-```typescript
+```
 // ✅ CORRECT
 map(numbers, fn(x: i32): i32 {
     return x * 2;
@@ -255,7 +255,7 @@ Support enum with integer values only. No string enums.
 - Reduces compiler complexity
 
 **Consequences:**
-```typescript
+```
 // ✅ CORRECT (integer enum)
 enum HttpStatus {
     Ok = 200,
@@ -305,7 +305,7 @@ Use Rust-style documentation comments (`///` and `//!`).
 - Proven effective in large projects
 
 **Consequences:**
-```typescript
+```
 ///
 /// Calculate the distance between two points
 ///
@@ -353,7 +353,7 @@ Do not support OOP inheritance. Use composition and traits (future).
 - Consistent with Go's philosophy
 
 **Consequences:**
-```typescript
+```
 // ✅ CORRECT (composition)
 struct Animal {
     name: string,
@@ -393,7 +393,7 @@ Type annotations are **required** for all variable declarations. No inference fr
 - Better IDE support
 
 **Consequences:**
-```typescript
+```
 // ✅ CORRECT
 let x: i32 = 42;
 let y: string = "hello";
@@ -440,7 +440,7 @@ Implement direct support for `import "header.h"`. The compiler will use `bindgen
 - Ensures bindings are always up-to-date with headers.
 
 **Consequences:**
-```typescript
+```
 // main.koa
 import "stdio.h"; // Automatic binding
 
@@ -470,7 +470,7 @@ Introduce **Interfaces** with Structural Typing (Go-style).
 - Solves the Generic Constraint problem.
 
 **Consequences:**
-```typescript
+```
 interface Stringer {
     fn to_string(self): string;
 }

@@ -60,7 +60,7 @@ version = "0.1.0"
 type = "executable"
 ```
 
-```typescript
+```
 // src/main.koa
 fn main(): i32 {
     println!("Hello, World!");
@@ -86,7 +86,7 @@ name = "mylib"
 path = "src/lib.koa"
 ```
 
-```typescript
+```
 // src/lib.koa
 ///
 /// My awesome library
@@ -123,7 +123,7 @@ type = "executable"
 http = { git = "https://github.com/riipandi/koa-http", version = "0.1.0" }
 ```
 
-```typescript
+```
 // src/main.koa
 import { serve, Router } from "std/net/http";
 
@@ -162,7 +162,7 @@ type = "executable"
 cli = { git = "https://github.com/riipandi/koa-cli", version = "0.1.0" }
 ```
 
-```typescript
+```
 // src/main.koa
 import { App, Arg } from "std/cli";
 

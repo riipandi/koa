@@ -26,7 +26,7 @@ Koa supports 4 build modes:
 
 ### Build Mode Annotations
 
-```typescript
+```
 [@debug]
 fn log_debug(msg: string): void {
     println!("DEBUG: {}", msg)
@@ -40,7 +40,7 @@ fn optimized_path(): void {
 
 ### Platform Annotations
 
-```typescript
+```
 [@os_linux]
 fn linux_specific(): void {
     // Linux only
@@ -59,7 +59,7 @@ fn macos_specific(): void {
 
 ### Architecture Annotations
 
-```typescript
+```
 [@arch_x86_64]
 fn x86_64_optimized(): void {
     // x86_64 specific
@@ -73,7 +73,7 @@ fn arm_optimized(): void {
 
 ### Feature Annotations
 
-```typescript
+```
 [@feature_sqlite]
 fn with_sqlite(): void {
     // Only if --feature sqlite
@@ -82,7 +82,7 @@ fn with_sqlite(): void {
 
 ### Test Annotations
 
-```typescript
+```
 [@test]
 fn test_helper(): void {
     // Only in test builds
@@ -93,7 +93,7 @@ fn test_helper(): void {
 
 ## Negation
 
-```typescript
+```
 [@not_debug]
 fn release_only(): void {
     // Anything except debug
@@ -109,7 +109,7 @@ fn non_windows(): void {
 
 ## Combinations
 
-```typescript
+```
 [@debug @os_linux]
 fn linux_debug(): void {
     // Debug + Linux
@@ -127,7 +127,7 @@ fn x86_release(): void {
 
 ### 1. Debug Logging
 
-```typescript
+```
 struct Logger {
     [@debug]
     enabled: bool,
@@ -158,7 +158,7 @@ struct Logger {
 
 ### 2. Platform-Specific Code
 
-```typescript
+```
 fn get_temp_dir(): string {
     [@os_windows]
     return "C:\\Temp"
@@ -173,7 +173,7 @@ fn get_temp_dir(): string {
 
 ### 3. Performance Measurements
 
-```typescript
+```
 [@debug]
 fn measure_time<T>(name: string, f: fn(): T): T {
     let start: i64 = timestamp()
@@ -191,7 +191,7 @@ fn measure_time<T>(name: string, f: fn(): T): T {
 
 ### 4. Safety vs Performance
 
-```typescript
+```
 fn array_get<T>(arr: []T, index: usize): T | null {
     [@debug]
     if index >= arr.len {
@@ -295,7 +295,7 @@ koa build
 
 ### 1. Use Debug Logging Sparingly
 
-```typescript
+```
 // GOOD: Conditional debug logging
 [@debug]
 fn log_debug(msg: string): void {
@@ -310,7 +310,7 @@ fn log(msg: string): void {
 
 ### 2. Platform Abstractions
 
-```typescript
+```
 // GOOD: Platform-specific functions
 fn get_config_path(): string {
     [@os_windows]
@@ -332,7 +332,7 @@ fn get_config_path(): string {
 
 ### 3. Feature Flags
 
-```typescript
+```
 // GOOD: Optional features
 [@feature_sqlite]
 struct Database {
