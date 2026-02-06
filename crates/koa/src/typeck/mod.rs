@@ -176,7 +176,7 @@ impl TypeChecker {
                 Ok(())
             }
             Expression::Block(block) => self.check_block(block),
-            Expression::ErrorUnion(error_union_expr) => self.check_type(&error_union_expr.type_),
+            Expression::ErrorUnion(error_union_expr) => self.check_type(&error_union_expr.value_type),
             Expression::Array(array_expr) => {
                 for element in &array_expr.elements {
                     self.check_expression(element)?;

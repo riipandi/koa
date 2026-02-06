@@ -342,14 +342,8 @@ impl IrLowerer {
 
     fn lower_literal(&mut self, literal: &Literal) -> Result<IrConstant> {
         match literal {
-            Literal::Number(n) => {
-                // Check if it's an integer or float
-                if n.fract() == 0.0 && n.abs() < (i64::MAX as f64) {
-                    Ok(IrConstant::Int(*n as i64))
-                } else {
-                    Ok(IrConstant::Float(*n))
-                }
-            }
+            Literal::Int(n) => Ok(IrConstant::Int(*n)),
+            Literal::Float(n) => Ok(IrConstant::Float(*n)),
             Literal::Bool(b) => Ok(IrConstant::Bool(*b)),
             Literal::String(s) => Ok(IrConstant::String(s.clone())),
             Literal::Null => Ok(IrConstant::Null),

@@ -275,7 +275,8 @@ pub enum UnaryOp {
 #[derive(Debug, Clone)]
 pub enum Literal {
     String(String),
-    Number(f64),
+    Int(i64),
+    Float(f64),
     Bool(bool),
     Null,
 }
@@ -316,7 +317,8 @@ pub struct IfExpr {
 /// Error union expression
 #[derive(Debug, Clone)]
 pub struct ErrorUnionExpr {
-    pub type_: Box<Type>,
+    pub error_name: Option<String>,
+    pub value_type: Box<Type>,
     pub span: Span,
 }
 
@@ -456,10 +458,11 @@ pub struct ExportDecl {
 pub enum Type {
     Named(String),
     Generic(Box<Type>, Vec<Type>),
-    ErrorUnion(Box<Type>),
+    ErrorUnion(Option<String>, Box<Type>),
     Array(Box<Type>),
     Tuple(Vec<Type>),
     Function(Vec<Type>, Box<Type>),
     Pointer(Box<Type>),
     Optional(Box<Type>),
+    Void,
 }
