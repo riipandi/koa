@@ -587,6 +587,16 @@ impl<'ctx> LLVMCodegen<'ctx> {
 
                 self.context.struct_type(&field_types, false).into()
             }
+            IrType::Enum { variants: _ } => {
+                // For now, represent enum as a struct with:
+                // - tag (i32)
+                // - union of all variant payloads (simplified as i32 for now)
+                // TODO: Implement proper tagged union
+                let tag_type = self.context.i32_type();
+                let payload_type = self.context.i32_type(); // Placeholder
+                let field_types = vec![tag_type.into(), payload_type.into()];
+                self.context.struct_type(&field_types, false).into()
+            }
             IrType::Function(_, _) => {
                 // Function types are handled separately in codegen_function_decl
                 self.context.i32_type().into()

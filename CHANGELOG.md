@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Generic Enums (2026-02-07)
+
+#### IR & Type System
+- Added `IrType::Enum { variants }` to represent enum types in IR
+- Each enum variant is represented as a `Vec<IrType>` of its fields
+- Added `enum_map: HashMap<String, EnumDecl>` to `IrLowerer` for tracking enums
+- Added `specialized_enums: HashMap<String, IrType>` for monomorphized enums
+
+#### IR Lowering
+- Implemented `lower_enum_decl()` to lower enum declarations to IR
+- Implemented `specialize_enum()` for enum monomorphization
+- Type substitution for enum variant fields (similar to struct fields)
+- Support for `Option<T>`, `Result<T, E>`, and custom generic enums
+- Enum types in `lower_type()` with proper lookup and specialization
+
+#### LLVM Codegen
+- Added enum support in `ir_type_to_llvm()`
+- Enums represented as tagged unions (struct with tag + payload)
+- TODO: Implement proper tagged union with variant-specific payloads
+
+#### Testing
+- Added test_generic_enum_declaration - verifies `Option<T>` parsing and lowering
+- Added test_generic_enum_with_multiple_type_params - verifies `Result<T, E>`
+- Added test_non_generic_enum - verifies basic enums without type parameters
+- Added test_enum_with_multiple_fields - verifies variants with data
+- Added test_enum_in_struct_field - verifies enums as struct fields
+- Added test_enum_in_function_parameter - verifies enums as function parameters
+- Added test_result_enum_with_different_types - verifies multiple instantiations
+- Added test_nested_generics - verifies `Option<Option<T>>` patterns
+- Added test_enum_with_multiple_type_params_and_structs - verifies complex generics
+- Total test suite: 81 tests passing (up from 70)
+
+#### Examples
+```koa
+enum Option<T> {
+    Some(T),
+    None,
+}
+
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+
+struct Container {
+    value: Option<i32>;
+}
+
+fn process(opt: Option<i32>): void {
+    return;
+}
+```
+
 ### Added - Enhanced Interface Checking (2026-02-07)
 
 #### Type Checker

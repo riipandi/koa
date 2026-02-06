@@ -199,6 +199,7 @@ pub enum IrType {
     Pointer(Box<IrType>),
     Array(Box<IrType>, u64),
     Struct(Vec<IrType>),
+    Enum { variants: Vec<Vec<IrType>> },
     Function(Vec<IrType>, Box<IrType>),
 }
 
@@ -209,9 +210,11 @@ pub struct IrLowerer {
     temp_count: usize,
     struct_map: HashMap<String, StructDecl>,
     fn_map: HashMap<String, FnDecl>,
+    enum_map: HashMap<String, EnumDecl>,
     specialized_functions: Vec<IrFunction>,
     specialized_function_names: Vec<String>,
     specialized_structs: HashMap<String, IrType>,
+    specialized_enums: HashMap<String, IrType>,
     type_substitution: HashMap<String, Type>,
     loop_stack: Vec<(String, String)>, // (continue_label, break_label)
 }
@@ -224,9 +227,11 @@ impl IrLowerer {
             temp_count: 0,
             struct_map: HashMap::new(),
             fn_map: HashMap::new(),
+            enum_map: HashMap::new(),
             specialized_functions: Vec::new(),
             specialized_function_names: Vec::new(),
             specialized_structs: HashMap::new(),
+            specialized_enums: HashMap::new(),
             type_substitution: HashMap::new(),
             loop_stack: Vec::new(),
         }
@@ -237,11 +242,14 @@ impl IrLowerer {
         let mut globals = Vec::new();
         let mut types = HashMap::new();
 
-        // First pass: collect struct and function definitions
+        // First pass: collect struct, enum, and function definitions
         for decl in &ast.declarations {
             match decl {
                 Declaration::StructDecl(s) => {
                     self.struct_map.insert(s.name.clone(), s.clone());
+                }
+                Declaration::EnumDecl(e) => {
+                    self.enum_map.insert(e.name.clone(), e.clone());
                 }
                 Declaration::FnDecl(f) => {
                     self.fn_map.insert(f.name.clone(), f.clone());
@@ -270,6 +278,13 @@ impl IrLowerer {
                         types.insert(struct_decl.name.clone(), ir_type);
                     }
                 }
+                Declaration::EnumDecl(enum_decl) => {
+                    // Only lower non-generic enums in the top level
+                    if enum_decl.type_params.is_empty() {
+                        let ir_type = self.lower_enum_decl(enum_decl)?;
+                        types.insert(enum_decl.name.clone(), ir_type);
+                    }
+                }
                 _ => {}
             }
         }
@@ -278,6 +293,10 @@ impl IrLowerer {
         functions.append(&mut self.specialized_functions);
         // Add specialized structs
         for (name, ty) in self.specialized_structs.drain() {
+            types.insert(name, ty);
+        }
+        // Add specialized enums
+        for (name, ty) in self.specialized_enums.drain() {
             types.insert(name, ty);
         }
 
@@ -692,19 +711,31 @@ impl IrLowerer {
             Type::Array(inner) => Ok(IrType::Array(Box::new(self.lower_type(&inner)?), 0)), // 0 size for now
             Type::Optional(inner) => Ok(IrType::Pointer(Box::new(self.lower_type(&inner)?))), // Simplified
             Type::Named(name) => {
-                // Return placeholder or look up in specialized_structs
+                // Return placeholder or look up in specialized structs/enums
                 if let Some(spec) = self.specialized_structs.get(&name) {
+                    Ok(spec.clone())
+                } else if let Some(spec) = self.specialized_enums.get(&name) {
                     Ok(spec.clone())
                 } else if self.struct_map.contains_key(&name) {
                     // Try to lower non-generic struct
                     self.specialize_struct(&name, None)
+                } else if self.enum_map.contains_key(&name) {
+                    // Try to lower non-generic enum
+                    self.specialize_enum(&name, None)
                 } else {
                     Ok(IrType::Int32)
                 }
             }
             Type::Generic(base, args) => {
                 if let Type::Named(name) = *base {
-                    self.specialize_struct(&name, Some(&args))
+                    // Check if it's a struct or enum
+                    if self.struct_map.contains_key(&name) {
+                        self.specialize_struct(&name, Some(&args))
+                    } else if self.enum_map.contains_key(&name) {
+                        self.specialize_enum(&name, Some(&args))
+                    } else {
+                        Ok(IrType::Int32)
+                    }
                 } else {
                     Ok(IrType::Int32)
                 }
@@ -719,6 +750,18 @@ impl IrLowerer {
             fields.push(self.lower_type(&field.type_)?);
         }
         Ok(IrType::Struct(fields))
+    }
+
+    fn lower_enum_decl(&mut self, enum_decl: &EnumDecl) -> Result<IrType> {
+        let mut variants = Vec::new();
+        for variant in &enum_decl.variants {
+            let mut variant_fields = Vec::new();
+            for field in &variant.fields {
+                variant_fields.push(self.lower_type(field)?);
+            }
+            variants.push(variant_fields);
+        }
+        Ok(IrType::Enum { variants })
     }
 
     fn specialize_fn_name(&self, name: &str, type_args: &[Type]) -> String {
@@ -861,6 +904,53 @@ impl IrLowerer {
         }
 
         // Final fallback (placeholder logic from before)
+        Ok(IrType::Int32)
+    }
+
+    fn specialize_enum(&mut self, name: &str, type_args: Option<&Vec<Type>>) -> Result<IrType> {
+        if let Some(args) = type_args {
+            let spec_name = self.specialize_fn_name(name, args);
+            if let Some(hit) = self.specialized_enums.get(&spec_name) {
+                return Ok(hit.clone());
+            }
+
+            if let Some(e) = self.enum_map.get(name).cloned() {
+                // Save old substitution
+                let old_sub = self.type_substitution.clone();
+                // Set up new substitution for variant fields
+                for (i, param) in e.type_params.iter().enumerate() {
+                    self.type_substitution
+                        .insert(param.name.clone(), args[i].clone());
+                }
+
+                let mut variants = Vec::new();
+                for variant in &e.variants {
+                    let mut variant_fields = Vec::new();
+                    for field in &variant.fields {
+                        let substituted = self.substitute_type(field);
+                        variant_fields.push(self.lower_type(&substituted)?);
+                    }
+                    variants.push(variant_fields);
+                }
+
+                let ir_type = IrType::Enum { variants };
+                self.specialized_enums.insert(spec_name, ir_type.clone());
+                self.type_substitution = old_sub;
+                return Ok(ir_type);
+            }
+        }
+
+        if let Some(e) = self.enum_map.get(name).cloned() {
+            if !e.type_params.is_empty() {
+                return Err(miette::miette!(
+                    "Generic enum '{}' requires type arguments",
+                    name
+                ));
+            }
+            return self.lower_enum_decl(&e);
+        }
+
+        // Final fallback
         Ok(IrType::Int32)
     }
 

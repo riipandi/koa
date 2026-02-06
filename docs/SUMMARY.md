@@ -24,36 +24,40 @@
 - [x] LLVM codegen integration
 - [x] Type inference
 - [x] Enhanced interface checking
+- [x] Generic enums
 
 ### Recent Updates (2026-02-07)
+
+**Generic Enums Complete:**
+- Added `IrType::Enum { variants }` to IR for enum representation
+- Implemented enum lowering to IR (similar to struct lowering)
+- Added enum monomorphization with `specialize_enum()`
+- Added LLVM codegen support for enums (tagged union representation)
+- Comprehensive tests for `Option<T>` and `Result<T, E>` patterns
+- All 81 tests passing (36 typeck tests, 6 enum tests, 5 enum usage tests)
 
 **Enhanced Interface Checking Complete:**
 - Parameter type validation in interface satisfaction
 - Return type checking for interface methods
 - Comprehensive error messages for type mismatches
 - Added 5 new interface satisfaction tests
-- All 70 tests passing (35 typeck tests)
 
 **Type Inference Complete:**
 - Implemented local variable type inference for literals (i32, f64, string, bool)
-- Type inference from other variables
-- Type inference from function calls
-- Type inference from struct literals and generic structs
-- Type inference from complex expressions and arithmetic
+- Type inference from other variables, function calls, and expressions
 - Added 15 new type inference tests
 
 **LLVM Codegen Integration Complete:**
 - Fixed type tracking in LLVM codegen (local_types, temp_types)
 - Fixed load instruction to use correct types
 - Generic functions now properly compile to specialized LLVM IR
-- Multiple type instantiations supported (identity<i32>, identity<f64>)
-- Generic struct instantiation support added
 
 ### Next Steps
 
 **Immediate:**
 1. Generics examples & docs
-2. Generic enums (Option<T>, Result<T,E>)
+2. Pattern matching for enums (match expressions)
+3. Enum value construction syntax
 
 **Short-term:**
 4. Generic enums (Option<T>, Result<T,E>)
