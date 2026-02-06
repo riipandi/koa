@@ -6,25 +6,25 @@ Complete syntax reference for Koa.
 
 Semicolons are **required** at the end of statements, with exceptions:
 
-- **Required**: Variable declarations, function calls, assignments, control flow statements
+- **Required**: Variable declarations, function calls, assignments, control flow statements, return statements
 - **Not required**: After function definitions, struct definitions, enum definitions, if/else, loops, match arms
 
 ```typescript
 // Required
 let x: i32 = 42;
 println!("Hello");
-x + 1;
+return x + 1;
 
 // Not required (function definition)
 fn add(x: i32, y: i32): i32 {
-    x + y
+    return x + y;
 }
 
 // Not required (control flow)
 if x > 0 {
-    x;
+    return x;
 } else {
-    0;
+    return 0;
 }
 ```
 
@@ -205,20 +205,27 @@ pub struct Vec<T> {
 
 ### Basic Functions
 
+**IMPORTANT:** The `return` keyword is **required** for all return values. No implicit returns.
+
 ```typescript
 // No parameters, no return
 fn greet(): void {
-    println!("Hello, World!")
+    println!("Hello, World!");
 }
 
 // With parameters
 fn add(x: i32, y: i32): i32 {
-    x + y
+    return x + y;
 }
 
 // With return type
 fn divide(x: f64, y: f64): f64 {
-    x / y
+    return x / y;
+}
+
+// ERROR: No implicit return
+fn add(x: i32, y: i32): i32 {
+    x + y  // ERROR: use 'return' keyword
 }
 ```
 
@@ -488,53 +495,97 @@ fn with_sqlite(): void {
 
 ## Comments
 
+Koa uses Rust-style comments:
+
 ```typescript
-// Single-line comment
+// Single-line comment for inline documentation
 
 ///
-/// Doc comment for the next item
-/// Can be multiple lines
+/// Documentation comment for the next item
 ///
-pub fn documented(): void {
-    //!
-    //! Top-level doc comment (module documentation)
-    //!
+/// # Examples
+/// ```
+/// const result: i32 = add(1, 2);
+/// assert_eq!(result, 3);
+/// ```
+///
+/// # Parameters
+/// - `x`: First number
+/// - `y`: Second number
+///
+/// # Returns
+/// The sum of x and y
+///
+/// # Errors
+/// This function doesn't return errors
+///
+pub fn add(x: i32, y: i32): i32 {
+    return x + y;
 }
 
-// No multiline comments (like Zig)
-// Use multiple single-line comments
+//!
+//! Module-level documentation
+//!
+//! This module provides basic arithmetic operations.
+//!`
+
+// Regular comments for implementation details
+fn helper(): void {
+    // TODO: Improve this algorithm
+    // FIXME: This has a bug when x < 0
+
+    // NOTE: Using optimized approach
+    let result: i32 = 0;
+}
 ```
+
+**Comment Guidelines:**
+- Use `///` for public API documentation
+- Use `//!` for module-level documentation
+- Use `//` for inline comments
+- Support markdown in doc comments
+- Include examples, parameters, returns, and errors sections
+- Testable examples in doc comments (future feature)
 
 ---
 
 ## Complete Example
 
 ```typescript
-import { println, Vec } from "std/io"
+import { println, Vec } from "std/io";
 
-struct Point {
+///
+/// Represents a 2D point
+///
+pub struct Point {
     x: f64,
     y: f64,
 
+    ///
+    /// Creates a new point
+    ///
     pub fn new(x: f64, y: f64): Self {
-        Self { x, y }
+        return Self { x, y };
     }
 
+    ///
+    /// Calculates the distance to another point
+    ///
     pub fn distance(self, other: Point): f64 {
-        let dx: f64 = self.x - other.x
-        let dy: f64 = self.y - other.y
-        (dx * dx + dy * dy).sqrt()
+        let dx: f64 = self.x - other.x;
+        let dy: f64 = self.y - other.y;
+        return (dx * dx + dy * dy).sqrt();
     }
 }
 
 fn main(): i32 {
-    const p1: Point = Point::new(0.0, 0.0)
-    const p2: Point = Point::new(3.0, 4.0)
+    const p1: Point = Point::new(0.0, 0.0);
+    const p2: Point = Point::new(3.0, 4.0);
 
-    let dist: f64 = p1.distance(p2)
+    let dist: f64 = p1.distance(p2);
 
-    println!("Distance: {}", dist)
+    println!("Distance: {}", dist);
 
-    0
+    return 0;
 }
 ```

@@ -91,7 +91,7 @@ import { Vec as Vector } from "std/collections"
 ### Module Import (Import All)
 
 ```typescript
-// Import semua public items
+// Import all public items
 import * as utils from "utils"
 
 utils.greet("World")
@@ -133,20 +133,32 @@ pub { Vec, HashMap }
 
 ## Module Paths
 
-### Relative Paths
+### IMPORTANT: No Relative Paths
+
+**Koa does NOT support relative imports** like `../utils` or `./helper`. All imports must be absolute.
 
 ```typescript
-// src/foo/bar.koa
-import { helper } from "../utils"       // Up one level
-import { something } from "./sibling"  // Same directory
+// ❌ NOT SUPPORTED
+import { helper } from "../utils"       // ERROR: relative paths not allowed
+import { something } from "./sibling"  // ERROR: relative paths not allowed
 ```
 
-### Absolute Paths (from src root)
+### Absolute Paths Only
+
+All imports are resolved from the project root or external dependencies:
 
 ```typescript
 // src/main.koa
+
+// Stdlib imports
 import { Vec } from "std/collections/vec"
+
+// Local project imports (from src/)
 import { operations } from "math/operations"
+
+// External dependencies (from Koa.lock)
+import { serve } from "std/net/http"
+import { parse_json } from "koa_json"
 ```
 
 ---
@@ -185,19 +197,64 @@ fn internal_helper(): void {
 
 ## Module Resolution
 
-### Resolution Rules
+### Resolution Order
 
-1. **Absolute path**: From src root
-   ```typescript
-   import { Vec } from "std/collections/vec"
-   // → src/std/collections/vec.koa
-   ```
+Koa resolves imports in the following order:
 
-2. **Relative path**: From current file
-   ```typescript
-   // src/foo/bar.koa
-   import { helper } from "../utils"
-   // → src/utils.koa
+1. **Stdlib** (`std/*`)
+    ```typescript
+    import { Vec } from "std/collections/vec"
+    // → library/std/collections/vec.koa
+    ```
+
+2. **External Dependencies** (from `Koa.lock`)
+    ```typescript
+    import { parse_json } from "koa_json"
+    // → ~/.koa/cache/packages/koa-json-0.1.0/src/lib.koa
+    ```
+
+3. **Workspace Crates** (from `[workspace]` in `Koa.toml`)
+    ```typescript
+    import { utils } from "myapp_utils"
+    // → crates/utils/src/lib.koa
+    ```
+
+4. **Local Modules** (from `src/`)
+    ```typescript
+    import { operations } from "math/operations"
+    // → src/math/operations.koa
+    ```
+
+### Examples
+
+```typescript
+// Stdlib (always available)
+import { println } from "std/io"
+import { Vec, HashMap } from "std/collections"
+
+// External dependencies
+import { http_get } from "std/net/http"         // Stdlib HTTP
+import { parse_json } from "koa_json"           // External package
+
+// Local modules
+import { helper } from "utils"                  // src/utils.koa
+import { Calculator } from "math/calculator"    // src/math/calculator.koa
+```
+
+### Conflict Resolution
+
+If multiple sources define the same module:
+
+1. **Stdlib wins** over external dependencies
+2. **Explicit overrides** via `Koa.toml`
+3. **Error** if unresolvable
+
+```toml
+# Koa.toml - Explicit override
+[dependencies]
+# Use this version instead of stdlib
+http = { git = "https://github.com/custom/koa-http", version = "0.2.0" }
+```
    ```
 
 3. **Module index**: `mod.koa` for directory
