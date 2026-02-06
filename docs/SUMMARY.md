@@ -1,6 +1,6 @@
 # Koa Programming Language
 
-**Koa** is a modern compiled programming language with garbage collector, static typing, and syntax familiar to TypeScript developers.
+**Koa** is a general-purpose compiled programming language designed for building efficient, reliable, and scalable software with a focus on simplicity and productivity.
 
 ## Goals
 
@@ -135,14 +135,13 @@ pub fn main(): i32 {
 ### Completed (Phase 0)
 - [x] Language specification
 - [x] Project structure setup
-- [x] Lexer implementation
-- [x] Parser implementation
-- [x] AST definitions
+- [x] Architecture decisions
+- [x] Documentation planning
 
 ### In Progress
-- [ ] Milestone 1: Empty function compilation
-- [ ] Milestone 2: External function calls
-- [ ] Milestone 3: Integer operations
+- [ ] Milestone 1: Lexer Implementation
+- [ ] Milestone 2: Parser Implementation
+- [ ] Milestone 3: AST definitions
 
 ### Planned
 - [ ] Milestone 4: If/else expressions

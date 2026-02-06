@@ -107,13 +107,13 @@ docs:
 # Build example in debug mode
 debug: build-cli
 	@mkdir -p $(DEBUG_DIR)
-	cargo run -p koa-cli -- build examples/hello_world.koa --output $(DEBUG_DIR)/hello_world
+	cargo run -p koa-cli -- build examples/hello_world.koa
 	@echo "Built $(DEBUG_DIR)/hello_world"
 
 # Build example in release mode
 release: build-cli
 	@mkdir -p $(RELEASE_DIR)
-	cargo run -p koa-cli -- build --mode release examples/hello_world.koa --output $(RELEASE_DIR)/hello_world
+	cargo run -p koa-cli -- build examples/hello_world.koa --mode release
 	@echo "Built $(RELEASE_DIR)/hello_world"
 
 # Run example in debug mode
@@ -127,7 +127,7 @@ example-hello-release: release
 # Build simple example
 debug-simple: build-cli
 	@mkdir -p $(DEBUG_DIR)
-	cargo run -p koa-cli -- build examples/simple.koa --output $(DEBUG_DIR)/simple
+	cargo run -p koa-cli -- build examples/simple.koa
 	@echo "Built $(DEBUG_DIR)/simple"
 
 # Initialize a new project (interactive)

@@ -1,6 +1,8 @@
 # Koa
 
-**Koa** is a modern compiled programming language designed for developer productivity without sacrificing performance.
+**Koa** is a general-purpose compiled programming language designed for building efficient, reliable, and scalable software with a focus on simplicity and productivity.
+
+> **"Native performance, modern simplicity"**
 
 > **⚠️ Experimental & Educational Project**
 > 
@@ -16,13 +18,13 @@
 
 - **TypeScript-Familiar Syntax** - Low learning curve for JavaScript/TypeScript developers
 - **Type-Safe** - Static typing with explicit type annotations
-- **Memory Safe** - Concurrent mark-sweep garbage collector (no manual memory management)
+- **Memory Safe** - Automated memory management via concurrent garbage collector (no manual malloc/free)
 - **Fast Performance** - Compiled to native code via LLVM
 - **Simple Module System** - File-based modules with explicit imports/exports
 - **Built-in Package Manager** - Git-based dependencies with lockfile support
 - **Database Drivers** - Built-in SQLite and PostgreSQL drivers
-- **FFI Support** - C-compatible foreign function interface
-- **Hot Module Reload** - Fast development iteration
+- **FFI Support** - Seamless C interop using `bindgen` (Planned)
+- **Hot Module Reload** - Fast development iteration (Phase 8)
 
 ## Installation
 
@@ -242,7 +244,7 @@ koa list
 
 See [Implementation Plan](docs/10-implementation-plan.md) for the complete roadmap.
 
-Current status: Phase 1 (Core Foundation) - In Progress
+Current status: **Phase 1 (Core Foundation)** - Setting up Lexer & Parser
 
 ## Contributing
 

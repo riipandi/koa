@@ -65,7 +65,7 @@ impl<'ctx> LLVMCodegen<'ctx> {
         // Declare printf
         let printf_type = self.context.i32_type().fn_type(
             &[BasicMetadataTypeEnum::PointerType(
-                self.context.ptr_type(AddressSpace::default()),
+                self.context.i8_type().ptr_type(AddressSpace::default()),
             )],
             true,
         );
@@ -75,7 +75,7 @@ impl<'ctx> LLVMCodegen<'ctx> {
         // Declare puts
         let puts_type = self.context.i32_type().fn_type(
             &[BasicMetadataTypeEnum::PointerType(
-                self.context.ptr_type(AddressSpace::default()),
+                self.context.i8_type().ptr_type(AddressSpace::default()),
             )],
             false,
         );
@@ -401,7 +401,7 @@ impl<'ctx> LLVMCodegen<'ctx> {
             IrType::Uint64 => self.context.i64_type().into(),
             IrType::Float32 => self.context.f32_type().into(),
             IrType::Float64 => self.context.f64_type().into(),
-            IrType::Pointer(_inner) => self.context.ptr_type(AddressSpace::default()).into(),
+            IrType::Pointer(_inner) => self.context.i8_type().ptr_type(AddressSpace::default()).into(),
             IrType::Array(inner, size) => {
                 self.ir_type_to_llvm(inner).array_type(*size as u32).into()
             }

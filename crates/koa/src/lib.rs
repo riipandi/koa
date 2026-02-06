@@ -1,10 +1,10 @@
 //! Koa Programming Language Compiler
 //!
-//! Koa is a modern compiled programming language with:
+//! Koa is a general-purpose compiled programming language with:
 //! - TypeScript-familiar syntax
-//! - Concurrent mark-sweep GC
+//! - Automated memory management (Concurrent GC)
 //! - Error sets and error unions
-//! - Built-in async/await
+//! - Built-in async/await model
 
 pub mod ast;
 pub mod ir;
