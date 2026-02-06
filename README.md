@@ -244,7 +244,7 @@ koa list
 
 See [Implementation Plan](docs/10-implementation-plan.md) for the complete roadmap.
 
-Current status: **Phase 1 (Core Foundation)** - Setting up Lexer & Parser
+Current status: **Phase 2 (Generics & Interfaces)** - Core foundation completed, moving into advanced type system.
 
 ## Contributing
 

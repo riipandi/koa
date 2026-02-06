@@ -529,16 +529,16 @@ The compiler automatically detects the target architecture:
 
 ## Milestones
 
-| Milestone           | Duration   | Deliverable       |
-|---------------------|------------|-------------------|
-| **M1: Hello World** | Week 1-6   | Basic executable  |
-| **M2: Generics**    | Week 7-14  | Full generics     |
-| **M3: Patterns**    | Week 15-20 | Pattern matching  |
-| **M4: GC**          | Week 21-30 | Working GC        |
-| **M5: Async**       | Week 31-40 | Async runtime     |
-| **M6: Stdlib**      | Week 41-48 | Standard library  |
-| **M7: HMR**         | Week 49-56 | Hot module reload |
-| **M8: v0.1.0**      | Week 57-62 | First release     |
+| Milestone           | Duration   | Deliverable       | Status      |
+|---------------------|------------|-------------------|-------------|
+| **M1: Hello World** | Week 1-6   | Basic executable  | ✅ Done      |
+| **M2: Generics**    | Week 7-14  | Full generics     | ⏳ Planned  |
+| **M3: Patterns**    | Week 15-20 | Pattern matching  | ⏳ Planned  |
+| **M4: GC**          | Week 21-30 | Working GC        | ⏳ Planned  |
+| **M5: Async**       | Week 31-40 | Async runtime     | ⏳ Planned  |
+| **M6: Stdlib**      | Week 41-48 | Standard library  | ⏳ Planned  |
+| **M7: HMR**         | Week 49-56 | Hot module reload | ⏳ Planned  |
+| **M8: v0.1.0**      | Week 57-62 | First release     | ⏳ Planned  |
 
 ---
 

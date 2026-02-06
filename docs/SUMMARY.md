@@ -142,9 +142,9 @@ pub fn main(): i32 {
 - [x] Milestone 1: Lexer Implementation
 - [x] Milestone 2: Parser Implementation
 - [x] Milestone 3: AST definitions
-- [ ] Milestone 4: Semantic Analysis & Type Checker (Basic implementation done)
-- [ ] Milestone 5: Intermediate Representation (IR)
-- [ ] Milestone 6: LLVM IR Generation
+- [x] Milestone 4: Semantic Analysis & Type Checker
+- [x] Milestone 5: Intermediate Representation (IR)
+- [x] Milestone 6: LLVM IR Generation (Basic implementation done)
 
 ### Planned
 - [ ] Milestone 7: Standard library

@@ -16,3 +16,4 @@ which.workspace = true
 colored.workspace = true
 anyhow.workspace = true
 walkdir.workspace = true
+koa = { path = "../koa" }
