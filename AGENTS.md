@@ -196,6 +196,17 @@ impl Default for Lexer<'_> {
 5. Run `cargo clippy -- -D warnings` and fix all warnings
 6. Final check: `cargo test && cargo clippy -- -D warnings`
 
+**IMPORTANT - Git Policy**:
+- ⛔ **NEVER commit changes automatically** without explicit user approval
+- ✅ DO stage changes with `git add` when requested
+- ✅ DO show what would be committed with `git status`
+- ✅ DO provide commit message suggestions for user review
+- ❌ DO NOT execute `git commit` on your own
+- ❌ DO NOT execute `git push` under any circumstances
+- ❌ DO NOT execute `git pull --rebase` or `git merge` manually
+- ✅ Only automatic git operations allowed: `git fetch` and `git pull` (without --rebase or --merge flags)
+- All other git operations must be **manual and user-initiated**
+
 ## File Organization
 
 ```
@@ -229,6 +240,7 @@ docs/                   # Documentation
 - **Workspace dependencies**: Defined in root `Cargo.toml`
 - **Testing**: All tests pass, use `cargo test -p koa` for compiler tests
 - **Parser grammar**: Hand-written recursive descent (not using lalrpop yet)
+- **Git operations**: NEVER commit or push automatically - all git operations require explicit user approval
 
 ## Questions?
 
