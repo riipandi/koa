@@ -4,7 +4,7 @@ Roadmap for Koa implementation from start to production-ready.
 
 ## Overview
 
-Total timeline: **~40-54 weeks** (9-12 months) for 1 full-time developer.
+Total timeline: **~18-24 months** for 1 full-time developer.
 
 ---
 
@@ -23,9 +23,9 @@ Total timeline: **~40-54 weeks** (9-12 months) for 1 full-time developer.
 ### Tasks
 
 **Week 1-2: Lexer**
-- Token types dan definitions
+- Token types and definitions
 - Lexer implementation (handwritten recursive descent)
-- Error handling dengan line/column info
+- Error handling with line/column info
 - Unicode support (UTF-8)
 
 **Week 3-4: Parser**
@@ -53,13 +53,14 @@ fn main(): i32 {
 
 ---
 
-## Phase 2: Generics & Type System (6-8 weeks)
+## Phase 2: Generics & Interfaces (3-4 months)
 
-**Goal**: Full generics support
+**Goal**: Full generics support with Interface constraints
 
 ### Deliverables
 
 - ✅ Type parameters
+- ✅ **Interfaces** (Structural/Explicit)
 - ✅ Monomorphization
 - ✅ Generic functions
 - ✅ Generic structs
@@ -67,23 +68,22 @@ fn main(): i32 {
 
 ### Tasks
 
-**Week 1-2: Type Parameters**
+**Month 1: Type Parameters & Interfaces**
 - Type parameter syntax
-- Generic function definitions
-- Generic struct definitions
+- Interface definitions (`interface` keyword)
+- Generic constraint syntax (`T: Interface`)
 
-**Week 3-4: Monomorphization**
+**Month 2: Monomorphization**
 - Type instantiation
 - Code generation for generics
-- Type deduplication
+- V-table generation (if needed for interfaces)
 
-**Week 5-6: Type Inference**
-- Local type inference (limited)
-- Function return type inference
-- Generic call inference
+**Month 3: Type Inference**
+- Local type inference
+- Interface satisfaction check
 
-**Week 7-8: Testing**
-- Unit tests for type checker
+**Month 4: Testing**
+- Unit tests
 - Integration tests
 
 ### Example Output
@@ -133,7 +133,7 @@ struct Vec<T> {
 
 ```typescript
 fn classify(n: i32): string {
-    switch n {
+    match n {
         0 => "Zero",
         1 | 2 | 3 => "Small",
         _ => "Other",
@@ -143,45 +143,35 @@ fn classify(n: i32): string {
 
 ---
 
-## Phase 4: Memory Management & GC (8-10 weeks)
+## Phase 4: Memory Management (4-6 months)
 
-**Goal**: Working concurrent GC
+**Goal**: Working GC with upgrade path
 
 ### Deliverables
 
 - ✅ Bump pointer allocator
-- ✅ Concurrent tri-color mark-sweep GC
-- ✅ Write barriers
+- ✅ **Stage 1 GC**: Simple Mark-Sweep (using `rust-gc` or manual implementation)
+- ✅ **Stage 2 GC Research**: MMTk Integration plan
 - ✅ Stack maps
 - ✅ GC integration
 
 ### Tasks
 
-**Week 1-2: Allocator**
+**Month 1: Allocator & Basics**
 - Bump pointer allocator
-- Arena allocation
-- Heap allocation intrinsics
+- `rust-gc` integration testing
+- Object header design
 
-**Week 3-4: GC Implementation**
-- Tri-color marking
-- Mark setup/termination
-- Concurrent sweeping
-- Write barriers (Dijkstra)
-
-**Week 5-6: Compiler Integration**
+**Month 2-3: GC Integration**
 - Stack map generation
 - Root set identification
 - Safe point insertion
-- GC pacing (GOGC)
+- Basic collection cycles (Stop-The-World)
 
-**Week 7-8: Testing**
-- Stress tests
-- Memory leak tests
-- Performance benchmarks
-
-**Week 9-10: Optimization**
+**Month 4: Optimization & MMTk Research**
+- Benchmarking basic GC
+- Researching MMTk binding for future robust GC
 - Escape analysis
-- Stack vs heap allocation decisions
 
 ### Example Output
 
@@ -247,37 +237,34 @@ async fn fetch(url: string): !Data {
 
 ---
 
-## Phase 6: Modules & Stdlib (6-8 weeks)
+## Phase 6: Modules, FFI & Basic Stdlib (3-4 months)
 
-**Goal**: Module system + basic stdlib
+**Goal**: Module system, FFI, and core libraries
 
 ### Deliverables
 
 - ✅ File-based modules
-- ✅ import/export system
+- ✅ **FFI with `bindgen` integration**
 - ✅ Basic standard library
+- ✅ **Concurrency Primitives**
 
 ### Tasks
 
-**Week 1-2: Module System**
+**Month 1: Module System**
 - File = module
 - import/export syntax
-- Module resolution
-- Visibility rules
 
-**Week 3-4: Standard Library - Core**
+**Month 2: FFI & Bindgen**
+- `import "header.h"` syntax support
+- `bindgen` integration in compiler
+- Automatic type mapping (C int -> i32)
+
+**Month 3: Standard Library - Core & Concurrency**
 - std/io (print, file I/O)
 - std/collections (Vec, HashMap)
-- std/error (common errors)
-
-**Week 5-6: Standard Library - Extended**
-- std/net (HTTP, TCP)
-- std/time (sleep, timestamp)
-- std/math (math functions)
-
-**Week 7-8: Testing & Polish**
-- Stdlib tests
-- Documentation
+- **std/sync** (Mutex, RwLock, WaitGroup)
+- **std/atomic** (AtomicI32, etc.)
+- **std/channel** (Sender/Receiver)
 
 ### Example Output
 
@@ -330,7 +317,7 @@ fn main(): i32 {
 - koa run
 - koa test
 - koa fetch
-- Error messages yang jelas
+- Clear error messages
 
 ### Example Output
 
@@ -349,7 +336,7 @@ fn read_file(path: string): FileError!string {
 
 ## Phase 8: HMR (Hot Module Reload) (6-8 weeks)
 
-**Goal**: Development experience dengan fast iteration
+**Goal**: Development experience with fast iteration
 
 ### Deliverables
 
@@ -432,7 +419,7 @@ fn read_file(path: string): FileError!string {
 
 - **Language**: Rust 2024
 - **LLVM Binding**: `inkwell`
-- **Parser**: `lalrpop` (atau handmade)
+- **Parser**: `lalrpop` (or handmade)
 - **CLI**: `clap`
 - **Testing**: Rust's built-in test framework
 
@@ -440,7 +427,7 @@ fn read_file(path: string): FileError!string {
 
 - **Memory**: Bump pointer allocator
 - **GC**: Concurrent tri-color mark-sweep
-- **Async**: Event loop dengan epoll/kqueue
+- **Async**: Event loop with epoll/kqueue
 - **I/O**: Non-blocking I/O
 
 ---
@@ -599,17 +586,17 @@ The compiler automatically detects the target architecture:
 ## Timeline Visualization
 
 ```
-Phase 1: ████░░░░░░░░░░░░░░░░ (4-6 weeks)
-Phase 2: ░░░░████░░░░░░░░░░░░ (6-8 weeks)
-Phase 3: ░░░░░░░░░███░░░░░░░░░ (4-6 weeks)
-Phase 4: ░░░░░░░░░░░░░░████░░░░ (8-10 weeks)
-Phase 5: ░░░░░░░░░░░░░░░░░░░███ (8-10 weeks)
-Phase 6: ░░░░░░░░░░░░░░░░░░░░░░██ (6-8 weeks)
-Phase 7: ░░░░░░░░░░░░░░░░░░░░░░░░█ (4-6 weeks)
-Phase 8: ░░░░░░░░░░░░░░░░░░░░░░░░░███ (6-8 weeks)
-Phase 9: ░░░░░░░░░░░░░░░░░░░░░░░░░░░░█ (4-6 weeks)
+Phase 1: ██ (2-3 mo)
+Phase 2: ██ (3-4 mo)
+Phase 3: ██ (2 mo)
+Phase 4: ███ (4-6 mo)
+Phase 5: ███ (4-6 mo)
+Phase 6: ██ (3-4 mo)
+Phase 7: ██ (2 mo)
+Phase 8: ███ (3-4 mo)
+Phase 9: ██ (2 mo)
 
-Total: ~46-62 weeks
+Total: ~18-24 months
 ```
 
 ---

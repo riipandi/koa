@@ -7,7 +7,27 @@ Koa uses **async/await** model (TypeScript-style) for single-threaded concurrent
 - **Simple mental model** - Single-threaded, no race conditions
 - **Cooperative multitasking** - Tasks yield explicitly
 - **Event loop** - Async runtime with event loop
-- **Low overhead** - Green threads, not OS threads
+- **Low Overhead** - Green threads, not OS threads
+- **Runtime Safety** - Race detection via tooling (ThreadSanitizer)
+
+## Memory Safety
+
+Koa adopts a **Runtime Safety** model for concurrency (similar to Go):
+
+1.  **Heap Safety**: Automatic (GC).
+2.  **Data Races**: Detected at runtime using the Race Detector.
+    - Run tests with `koa test --race`.
+    - Compiler does not have a Borrow Checker (by design).
+
+### Essential Primitives (`std/sync`)
+
+To share state safely, use standard synchronization primitives:
+
+- `Mutex<T>`: Mutual exclusion.
+- `RwLock<T>`: Read-write lock.
+- `WaitGroup`: Wait for tasks to complete.
+- `AtomicI32`, `AtomicBool`: Lock-free operations.
+- `Channel<T>`: Message passing (Preferred).
 
 ---
 
@@ -37,7 +57,7 @@ async fn main(): !void {
 
 ### Event Loop
 
-Single-threaded event loop untuk async tasks:
+Single-threaded event loop for async tasks:
 
 ```typescript
 // Event loop processes tasks sequentially
@@ -54,7 +74,7 @@ fn event_loop(): void {
 
 ### Task Scheduling
 
-Tasks di-schedule di event loop:
+Tasks are scheduled in the event loop:
 
 ```typescript
 fn spawn_async<T>(future: Future<T>): void {
@@ -241,7 +261,7 @@ async fn fetch(): Data {
 
 ## Future: Goroutines + Channels (Phase 5)
 
-Potential addition di Phase 5:
+Potential addition in Phase 5:
 
 ```typescript
 // Goroutine
@@ -263,7 +283,7 @@ let value: i32 = rx.recv()
 
 | Concept | Syntax | Description |
 |---------|--------|-------------|
-| **Async Function** | `async fn(): T` | Function yang returns Future |
+| **Async Function** | `async fn(): T` | Function that returns Future |
 | **Await** | `await expr` | Yield sampai Future ready |
 | **Event Loop** | Runtime | Single-threaded scheduler |
 | **Spawn** | `spawn_async(future)` | Schedule async task |

@@ -179,7 +179,7 @@ http = { git = "https://github.com/riipandi/koa-http", version = "0.1.0" }
 
 Options:
 - `git` - Git repository URL
-- `version` - Tag atau version (opsional)
+- `version` - Tag or version (optional)
 - `branch` - Branch name (opsional, default: main/master)
 - `rev` - Specific commit SHA (opsional)
 
@@ -290,7 +290,7 @@ Lockfile ensures reproducible builds:
 ```bash
 # Developer A
 koa build
-# Generates Koa.lock dengan commit SHA
+# Generates Koa.lock with commit SHA
 
 # Developer B (different time)
 koa build
@@ -328,7 +328,7 @@ JSON format (machine-readable, optional):
 
 ### Checksums
 
-SHA256 checksum dari source code:
+SHA256 checksum of source code:
 
 ```bash
 # Checksum prevents tampering
@@ -393,7 +393,7 @@ git diff Koa.lock
 
 ## Virtual Registry
 
-Tidak ada central registry, tapi gunakan conventions:
+No central registry, but use conventions:
 
 ### GitHub Convention
 
@@ -407,7 +407,7 @@ Examples:
 
 ### Git Tags
 
-Gunakan Git tags untuk versioning:
+Use Git tags for versioning:
 
 ```bash
 git tag v0.1.0
@@ -429,7 +429,7 @@ Dependency resolution mencari tags:
 private = { git = "git@github.com:company/private-repo.git" }
 ```
 
-### HTTPS dengan Token
+### HTTPS with Token
 
 ```bash
 # Set Git credential
@@ -444,7 +444,7 @@ git config --global credential.helper store
 # Build offline (gunakan cached dependencies)
 koa build --offline
 
-# Error jika dependency tidak ada di cache
+# Error if dependency is not in cache
 ```
 
 ---

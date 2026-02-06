@@ -347,7 +347,7 @@ let data: string = try read_file(path)
 ```typescript
 // BAD: Ignore error
 let data: string = read_file(path) catch { }
-// ^ Error dibuang
+// ^ Error discarded
 
 // GOOD: Handle error
 let data: string = read_file(path) catch |err| {
@@ -388,10 +388,10 @@ fn process(): !void {
 ```typescript
 fn process(): !void {
     let file: File = try File::open(path)
-    errdefer file.close()  // Hanya cleanup kalau error
+    errdefer file.close()  // Only cleanup on error
 
     try validate(file)
-    // Kalau sukses, file tetap open
+    // If successful, file remains open
 
     return file
 }
@@ -403,9 +403,9 @@ fn process(): !void {
 
 | Concept         | Syntax                       | Description           |
 |-----------------|------------------------------|-----------------------|
-| **Error Set**   | `error { A, B }`             | Enum dari errors      |
-| **Error Union** | `E!T`                        | E atau T              |
-| **try**         | `try expr`                   | Unwrap atau propagate |
+| **Error Set**   | `error { A, B }`             | Enum of errors        |
+| **Error Union** | `E!T`                        | E or T                |
+| **try**         | `try expr`                   | Unwrap or propagate   |
 | **catch**       | `expr catch \|err\| handler` | Handle error          |
 | **errdefer**    | `errdefer stmt`              | Cleanup on error only |
 

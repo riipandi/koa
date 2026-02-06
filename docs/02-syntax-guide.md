@@ -321,7 +321,7 @@ fn process_file(path: string): !void {
 
 ## Pattern Matching
 
-### Switch Expression
+### Match Expression
 
 ```typescript
 enum Color {
@@ -331,7 +331,7 @@ enum Color {
 }
 
 fn describe(c: Color): string {
-    switch c {
+    match c {
         Color::Red => "Red",
         Color::Green => "Green",
         Color::Blue => "Blue",
@@ -348,7 +348,7 @@ struct Point {
 }
 
 fn match_point(p: Point): string {
-    switch p {
+    match p {
         Point { x: 0, y: 0 } => "Origin",
         Point { x, y: 0 } => "On x-axis: " + x,
         Point { x: 0, y } => "On y-axis: " + y,
@@ -361,7 +361,7 @@ fn match_point(p: Point): string {
 
 ```typescript
 fn classify(n: i32): string {
-    switch n {
+    match n {
         0 => "Zero",
         1 | 2 | 3 => "Small",
         _ => "Other",  // Wildcard

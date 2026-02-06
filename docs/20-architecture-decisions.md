@@ -9,13 +9,13 @@ This document contains Architecture Decision Records (ADRs) for major design cho
 **Status:** Accepted
 
 **Context:**
-Koa targets TypeScript developers who are familiar with camelCase. However, Koa is also a systems programming language.
+Koa targets TypeScript developers who are familiar with camelCase. However, Koa is also a general-purpose compiled language.
 
 **Decision:**
 Use `snake_case` for variables and functions, `PascalCase` for types.
 
 **Rationale:**
-- Consistent with Rust, showing Koa is a systems language
+- Consistent with Rust, showing Koa is a compiled language
 - More readable for multi-word identifiers
 - TypeScript developers are already familiar with snake_case from other languages
 - Clear distinction between types and values
@@ -415,14 +415,94 @@ let y = "hello";
 
 The following decisions may need ADRs in the future:
 
-- ADR-011: Trait system design
-- ADR-012: Async runtime model (Tokio vs async-std)
-- ADR-013: Error handling refinements
-- ADR-014: Macro system (if any)
-- ADR-015: Const generics
-- ADR-016: Module versioning strategy
-- ADR-017: Standard library structure
-- ADR-018: FFI ABI design (C ABI vs others)
+- ADR-014: Async runtime model (Tokio vs async-std)
+- ADR-015: Error handling refinements
+- ADR-016: Macro system (if any)
+- ADR-017: Const generics
+- ADR-018: Module versioning strategy
+- ADR-019: FFI ABI design (C ABI vs others)
+
+---
+
+## ADR-011: FFI via On-the-fly Bindgen
+
+**Status:** Accepted
+
+**Context:**
+Seamless interoperability with C is a requirement for a modern compiled language. Writing bindings manually is error-prone.
+
+**Decision:**
+Implement direct support for `import "header.h"`. The compiler will use `bindgen` (or equivalent) to generate bindings at compile-time.
+
+**Rationale:**
+- Frictionless experience for developers (Zig-style).
+- leveraging existing robust tooling (`bindgen`) instead of reinventing C parsing.
+- Ensures bindings are always up-to-date with headers.
+
+**Consequences:**
+```typescript
+// main.koa
+import "stdio.h"; // Automatic binding
+
+fn main(): i32 {
+    unsafe {
+        printf("Hello from C!\n");
+    }
+    return 0;
+}
+```
+
+---
+
+## ADR-012: Structural Interfaces
+
+**Status:** Accepted
+
+**Context:**
+The "No Trait" decision (ADR-009) limits the power of Generics. We need a way to constrain generics.
+
+**Decision:**
+Introduce **Interfaces** with Structural Typing (Go-style).
+
+**Rationale:**
+- Simpler than Rust Traits (no associated types, lifetimes).
+- More flexible than Java Interfaces (no explicit `implements` needed, though allowed).
+- Solves the Generic Constraint problem.
+
+**Consequences:**
+```typescript
+interface Stringer {
+    fn to_string(self): string;
+}
+
+fn print<T: Stringer>(item: T) {
+    println(item.to_string());
+}
+```
+
+---
+
+## ADR-013: Runtime Memory Safety Model
+
+**Status:** Accepted
+
+**Context:**
+Koa aims for simplicity and does not use a Borrow Checker. How do we ensure memory safety in concurrency?
+
+**Decision:**
+Adopt a **Runtime Safety** model with optionally active Race Detectors.
+- Garbage Collection handles heap safety.
+- Race Detector (ThreadSanitizer integration) handles data race detection during testing/debug.
+- Encourage `std/channel` for communication.
+
+**Rationale:**
+- "Too lazy to be complex" philosophy prefers runtime checks over complex compile-time rules.
+- Proven effective by Go.
+- Reduces learning curve significantly compared to Rust.
+
+**Consequences:**
+- Developers must write tests with `--race` flag.
+- Stdlib must provide robust `Mutex` and `Channel` primitives.
 
 ---
 

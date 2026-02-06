@@ -4,8 +4,8 @@ Koa has **Concurrent Mark-Sweep Garbage Collector** (Go-style) for automatic mem
 
 ## Philosophy
 
-- **No manual free** - No need to deallocate memory
-- **Concurrent** - GC runs parallel with application
+- **Automated by default** - No manual `malloc`/`free`
+- **Concurrent** - GC runs in parallel (lazy cleanup)
 - **Low latency** - Tri-color marking for minimal pause times
 - **Safe** - No dangling pointers, use-after-free, double free
 

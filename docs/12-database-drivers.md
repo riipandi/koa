@@ -237,7 +237,7 @@ pub interface Database {
 
 ```typescript
 async fn process_users<D: Database>(db: D): !void {
-    // Works dengan SQLite atau Postgres
+    // Works with SQLite or Postgres
     try db.execute("CREATE TABLE users ...")
     let rows: !Result = db.query("SELECT * FROM users")
     // ...
@@ -291,7 +291,7 @@ async fn example(): !void {
 
 ## ORM Integration (Phase 2)
 
-Future: Built-in ORM untuk type-safe queries
+Future: Built-in ORM for type-safe queries
 
 ```typescript
 // Future feature
@@ -443,15 +443,15 @@ src/driver/
 
 ### FFI Integration
 
-- SQLite: Link ke `libsqlite3`
-- PostgreSQL: Link ke `libpq`
+- SQLite: Link to `libsqlite3`
+- PostgreSQL: Link to `libpq`
 - Async I/O: Non-blocking calls
 
 ---
 
 ## Examples
 
-### Web Service dengan Database
+### Web Service with Database
 
 ```typescript
 import { PostgresPool } from "driver/postgres"

@@ -16,7 +16,7 @@ Koa supports conditional compilation with simple annotation syntax: `[@annotatio
 Koa supports 4 build modes:
 
 1. **debug** - Development, safety checks ON, optimization OFF
-2. **release-safe** - Production dengan safety checks
+2. **release-safe** - Production with safety checks
 3. **release-fast** - Maximum performance, safety checks OFF
 4. **release-small** - Minimum binary size
 
@@ -146,7 +146,7 @@ struct Logger {
 
     [@not_debug]
     pub fn new(): Logger {
-        Logger {}  // Empty di release
+        Logger {}  // Empty in release
     }
 
     [@not_debug]
@@ -246,7 +246,7 @@ koa build
 | Annotation         | Description           |
 |--------------------|-----------------------|
 | `[@debug]`         | Debug mode only       |
-| `[@release_safe]`  | Release dengan safety |
+| `[@release_safe]`  | Release with safety   |
 | `[@release_fast]`  | Release max speed     |
 | `[@release_small]` | Release min size      |
 | `[@release]`       | Any release mode      |

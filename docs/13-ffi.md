@@ -99,7 +99,7 @@ extern struct Point {
     y: f64,
 }
 
-// Use dengan C functions
+// Use with C functions
 extern "C" fn point_distance(p1: *const Point, p2: *const Point) -> f64;
 
 fn main(): i32 {
@@ -417,9 +417,9 @@ let ptr: *mut u8 = malloc(1024)
 ### 4. Type Conversion Helpers
 
 ```typescript
-// Helper untuk C string conversion
+// Helper for C string conversion
 fn c_string_to_koa(s: *const u8, len: usize): string {
-    // Convert C string ke Koa string
+    // Convert C string to Koa string
 }
 
 fn koa_string_to_c(s: string): (*const u8, usize) {
@@ -448,7 +448,7 @@ fn koa_string_to_c(s: string): (*const u8, usize) {
 Automatic C header parsing:
 
 ```bash
-# Generate bindings dari C headers
+# Generate bindings from C headers
 koa bindgen /usr/include/sqlite3.h --output sqlite3_bindings.koa
 ```
 
@@ -471,12 +471,12 @@ extern "C++" fn vector_push(v: *mut std::vector, val: i32) -> void;
 
 ### Runtime Requirements
 
-- FFI thunks untuk calling convention conversion
+- FFI thunks for calling convention conversion
 - C-compatible type definitions
-- Linker integration untuk symbol resolution
+- Linker integration for symbol resolution
 
 ### Safety Considerations
 
 - FFI calls are unsafe by default
-- No runtime checks untuk FFI
+- No runtime checks for FFI
 - User must ensure memory safety

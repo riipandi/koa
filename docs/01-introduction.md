@@ -2,26 +2,23 @@
 
 ## What is Koa?
 
-**Koa** is a modern compiled programming language designed for building performant systems with the simplicity of TypeScript syntax.
+**Koa** is a general-purpose compiled programming language designed for building efficient, reliable, and scalable software with a focus on simplicity and productivity.
 
 ### Tagline
 
-> **"Simple by design, powerful by choice"**
+> **"Native performance, modern simplicity"**
 
 ### Philosophy
 
 > **"Too lazy to be complex"**
 >
-> Koa rejects unnecessary complexity:
-> - No trait system (borrow checker is too complex for most)
-> - No OOP inheritance (composition over inheritance)
-> - No implicit type coercion (explicit > implicit)
+> Inspired by the Koala, we believe engineers should be "lazy" about the tedious parts of systems programming:
 >
-> But Koa provides:
-> - Memory safety without manual management
-> - Performance with LLVM compilation
-> - Concurrency with async/await
-> - Error handling without exceptions
+> - **Too lazy to manage memory**: Why `malloc` and `free` when a concurrent GC can do the cleanup for you?
+> - **Too lazy to optimize manually**: Why hand-tune assembly when LLVM optimization passes exist?
+> - **Too lazy to fight the compiler**: Why wrestle with a borrow checker when runtime safety is enough?
+>
+> Koa handles the heavy lifting so you can stay relaxed and productive.
 
 ## Design Goals
 

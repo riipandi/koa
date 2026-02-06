@@ -65,7 +65,7 @@ struct Point3D {
     z: f64,
 }
 
-// ERROR: Nama type berbeda, tidak kompatible
+// ERROR: Type names differ, incompatible
 fn accept(p: Point2D): void { }
 let p3d: Point3D = Point3D { x: 1.0, y: 2.0, z: 3.0 }
 accept(p3d)  // ERROR: expected Point2D, found Point3D
@@ -80,7 +80,7 @@ Koa doesn't have `null` as an implicit value. Use explicit nullable:
 ```typescript
 // Explicit nullable
 fn find_user(id: i32): User | null {
-    switch database.query(id) {
+    match database.query(id) {
         Ok(user) => user,
         Err(_) => null,
     }
@@ -145,6 +145,29 @@ type AsyncCallback = async fn(string): !void
 
 ---
 
+## Interfaces (Structural)
+
+Koa uses **Structural Interfaces** (similar to Go) to define behavior.
+
+```typescript
+// Interface definition
+interface Stringer {
+    fn to_string(self): string;
+}
+
+// Struct implicitly implements if methods match
+struct Point {
+    x: i32,
+    y: i32,
+
+    pub fn to_string(self): string {
+        return "Point(" + self.x + ", " + self.y + ")"
+    }
+}
+```
+
+---
+
 ## Type Annotations
 
 ### Always Explicit
@@ -204,18 +227,19 @@ struct Vec<T> {
 }
 ```
 
-### Constraints (Future)
+### Constraints (Interfaces)
 
-Type constraints will be added in Phase 2:
+Generics can be constrained using Interfaces:
 
 ```typescript
-// Example future syntax
-fn max<T: Comparable>(a: T, b: T): T {
-    if a.compare(b) > 0 {
-        a
-    } else {
-        b
-    }
+// T must implement Stringer
+fn print<T: Stringer>(item: T): void {
+    println(item.to_string())
+}
+
+// Multiple constraints
+fn compare<T: Equatable + Comparable>(a: T, b: T): bool {
+    // ...
 }
 ```
 
