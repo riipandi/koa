@@ -19,6 +19,7 @@ pub struct LLVMCodegen<'ctx> {
     builder: Builder<'ctx>,
     functions: HashMap<String, FunctionValue<'ctx>>,
     locals: HashMap<String, PointerValue<'ctx>>,
+    temps: HashMap<String, BasicValueEnum<'ctx>>,
     current_function: Option<FunctionValue<'ctx>>,
 }
 
@@ -33,6 +34,7 @@ impl<'ctx> LLVMCodegen<'ctx> {
             builder,
             functions: HashMap::new(),
             locals: HashMap::new(),
+            temps: HashMap::new(),
             current_function: None,
         }
     }
@@ -139,41 +141,61 @@ impl<'ctx> LLVMCodegen<'ctx> {
 
         self.current_function = Some(*fn_value);
         self.locals.clear();
+        self.temps.clear();
 
-        let entry_block = self.context.append_basic_block(*fn_value, "entry");
-        self.builder.position_at_end(entry_block);
-
-        // Allocate parameters and store initial values
-        for (i, param) in function.params.iter().enumerate() {
-            let param_value = fn_value
-                .get_nth_param(i as u32)
-                .ok_or_else(|| miette::miette!("Parameter {} not found", i))?;
-
-            let alloca = self
-                .builder
-                .build_alloca(self.ir_type_to_llvm(&param.type_), &param.name)
-                .into_diagnostic()?;
-
-            self.builder
-                .build_store(alloca, param_value)
-                .into_diagnostic()?;
-
-            self.locals.insert(param.name.clone(), alloca);
+        // Pre-create all basic blocks
+        let mut block_map = HashMap::new();
+        for block in &function.blocks {
+            let llvm_block = self.context.append_basic_block(*fn_value, &block.name);
+            block_map.insert(block.name.clone(), llvm_block);
         }
 
-        // Generate instructions
-        for instruction in &function.body.instructions {
-            self.codegen_instruction(instruction)?;
+        // Entry logic: parameters alloca
+        if let Some(first_block) = function.blocks.first() {
+            let llvm_block = block_map.get(&first_block.name).unwrap();
+            self.builder.position_at_end(*llvm_block);
+
+            // Allocate parameters and store initial values
+            for (i, param) in function.params.iter().enumerate() {
+                let param_value = fn_value
+                    .get_nth_param(i as u32)
+                    .ok_or_else(|| miette::miette!("Parameter {} not found", i))?;
+
+                let alloca = self
+                    .builder
+                    .build_alloca(self.ir_type_to_llvm(&param.type_), &param.name)
+                    .into_diagnostic()?;
+
+                self.builder
+                    .build_store(alloca, param_value)
+                    .into_diagnostic()?;
+
+                self.locals.insert(param.name.clone(), alloca);
+            }
+        }
+
+        // Generate instructions for each block
+        for block in &function.blocks {
+            let llvm_block = block_map.get(&block.name).unwrap();
+            self.builder.position_at_end(*llvm_block);
+            for instruction in &block.instructions {
+                self.codegen_instruction(instruction, &block_map)?;
+            }
         }
 
         self.current_function = None;
         self.locals.clear();
+        self.temps.clear();
 
         Ok(())
     }
 
     /// Generate instruction
-    fn codegen_instruction(&mut self, instruction: &IrInstruction) -> Result<()> {
+    fn codegen_instruction(
+        &mut self,
+        instruction: &IrInstruction,
+        block_map: &HashMap<String, inkwell::basic_block::BasicBlock<'ctx>>,
+    ) -> Result<()> {
         match instruction {
             IrInstruction::Alloca { name, type_ } => {
                 let llvm_type = self.ir_type_to_llvm(type_);
@@ -192,11 +214,12 @@ impl<'ctx> LLVMCodegen<'ctx> {
                     .into_diagnostic()?;
             }
 
-            IrInstruction::Load { src, dest: _ } => {
+            IrInstruction::Load { src, dest } => {
                 let src_ptr = self.operand_to_llvm_pointer(src)?;
-                self.builder
-                    .build_load(self.context.i32_type(), src_ptr, "load_tmp")
+                let res = self.builder
+                    .build_load(self.context.i32_type(), src_ptr, dest)
                     .into_diagnostic()?;
+                self.temps.insert(dest.clone(), res);
             }
 
             IrInstruction::Binary {
@@ -208,56 +231,62 @@ impl<'ctx> LLVMCodegen<'ctx> {
                 let left_val = self.operand_to_llvm_value(left)?;
                 let right_val = self.operand_to_llvm_value(right)?;
 
-                match op {
-                    IrBinaryOp::Add => {
-                        self.builder
-                            .build_int_add(
-                                left_val.into_int_value(),
-                                right_val.into_int_value(),
-                                dest,
-                            )
-                            .into_diagnostic()?;
-                    }
-                    IrBinaryOp::Sub => {
-                        self.builder
-                            .build_int_sub(
-                                left_val.into_int_value(),
-                                right_val.into_int_value(),
-                                dest,
-                            )
-                            .into_diagnostic()?;
-                    }
-                    IrBinaryOp::Mul => {
-                        self.builder
-                            .build_int_mul(
-                                left_val.into_int_value(),
-                                right_val.into_int_value(),
-                                dest,
-                            )
-                            .into_diagnostic()?;
-                    }
-                    IrBinaryOp::Div => {
-                        self.builder
-                            .build_int_signed_div(
-                                left_val.into_int_value(),
-                                right_val.into_int_value(),
-                                dest,
-                            )
-                            .into_diagnostic()?;
-                    }
-                    _ => {
-                        return Err(miette::miette!(
-                            "Binary operation not implemented: {:?}",
-                            op
-                        ));
-                    }
+                let res = match op {
+                    IrBinaryOp::Add => self.builder.build_int_add(left_val.into_int_value(), right_val.into_int_value(), dest).into_diagnostic()?,
+                    IrBinaryOp::Sub => self.builder.build_int_sub(left_val.into_int_value(), right_val.into_int_value(), dest).into_diagnostic()?,
+                    IrBinaryOp::Mul => self.builder.build_int_mul(left_val.into_int_value(), right_val.into_int_value(), dest).into_diagnostic()?,
+                    IrBinaryOp::Div => self.builder.build_int_signed_div(left_val.into_int_value(), right_val.into_int_value(), dest).into_diagnostic()?,
+                    IrBinaryOp::Mod => self.builder.build_int_signed_rem(left_val.into_int_value(), right_val.into_int_value(), dest).into_diagnostic()?,
+                    IrBinaryOp::And => self.builder.build_and(left_val.into_int_value(), right_val.into_int_value(), dest).into_diagnostic()?,
+                    IrBinaryOp::Or => self.builder.build_or(left_val.into_int_value(), right_val.into_int_value(), dest).into_diagnostic()?,
+                    IrBinaryOp::Xor => self.builder.build_xor(left_val.into_int_value(), right_val.into_int_value(), dest).into_diagnostic()?,
+                    IrBinaryOp::Shl => self.builder.build_left_shift(left_val.into_int_value(), right_val.into_int_value(), dest).into_diagnostic()?,
+                    IrBinaryOp::Shr => self.builder.build_right_shift(left_val.into_int_value(), right_val.into_int_value(), false, dest).into_diagnostic()?,
                 };
+                self.temps.insert(dest.clone(), res.into());
+            }
+
+            IrInstruction::Unary { op, operand, dest } => {
+                let val = self.operand_to_llvm_value(operand)?;
+                let res = match op {
+                    IrUnaryOp::Neg => self.builder.build_int_neg(val.into_int_value(), dest).into_diagnostic()?,
+                    IrUnaryOp::Not => self.builder.build_not(val.into_int_value(), dest).into_diagnostic()?,
+                };
+                self.temps.insert(dest.clone(), res.into());
+            }
+
+            IrInstruction::Cmp { op, left, right, dest } => {
+                let left_val = self.operand_to_llvm_value(left)?;
+                let right_val = self.operand_to_llvm_value(right)?;
+                let llvm_op = match op {
+                    IrCmpOp::Eq => inkwell::IntPredicate::EQ,
+                    IrCmpOp::Ne => inkwell::IntPredicate::NE,
+                    IrCmpOp::Lt => inkwell::IntPredicate::SLT,
+                    IrCmpOp::Le => inkwell::IntPredicate::SLE,
+                    IrCmpOp::Gt => inkwell::IntPredicate::SGT,
+                    IrCmpOp::Ge => inkwell::IntPredicate::SGE,
+                };
+                let res = self.builder.build_int_compare(llvm_op, left_val.into_int_value(), right_val.into_int_value(), dest).into_diagnostic()?;
+                self.temps.insert(dest.clone(), res.into());
+            }
+
+            IrInstruction::GEP { base, indices, dest } => {
+                let base_ptr = self.operand_to_llvm_pointer(base)?;
+                // Inkwell's build_gep is a bit different. For structs/arrays:
+                let mut llvm_indices = Vec::new();
+                for &idx in indices {
+                    llvm_indices.push(self.context.i32_type().const_int(idx as u64, false));
+                }
+                
+                // This is a placeholder, proper GEP needs careful type handling
+                let res = unsafe { self.builder.build_gep(self.context.i8_type(), base_ptr, &llvm_indices, dest).into_diagnostic()? };
+                self.temps.insert(dest.clone(), res.into());
             }
 
             IrInstruction::Call {
                 callee,
                 args,
-                dest: _,
+                dest,
             } => {
                 let fn_value = self
                     .module
@@ -275,6 +304,12 @@ impl<'ctx> LLVMCodegen<'ctx> {
                     .build_call(fn_value, &llvm_args, "call")
                     .into_diagnostic()?;
                 call_site.set_tail_call(false);
+                
+                if let Some(d) = dest {
+                    if let Some(val) = call_site.try_as_basic_value().left() {
+                        self.temps.insert(d.clone(), val);
+                    }
+                }
             }
 
             IrInstruction::Return { value } => {
@@ -288,11 +323,20 @@ impl<'ctx> LLVMCodegen<'ctx> {
                 }
             }
 
-            _ => {
-                return Err(miette::miette!(
-                    "Instruction not implemented: {:?}",
-                    instruction
-                ));
+            IrInstruction::Branch {
+                condition,
+                true_block,
+                false_block,
+            } => {
+                let cond_val = self.operand_to_llvm_value(condition)?;
+                let tb = block_map.get(true_block).ok_or_else(|| miette::miette!("Block not found: {}", true_block))?;
+                let fb = block_map.get(false_block).ok_or_else(|| miette::miette!("Block not found: {}", false_block))?;
+                self.builder.build_conditional_branch(cond_val.into_int_value(), *tb, *fb).into_diagnostic()?;
+            }
+
+            IrInstruction::Jump { target } => {
+                let dest = block_map.get(target).ok_or_else(|| miette::miette!("Block not found: {}", target))?;
+                self.builder.build_unconditional_branch(*dest).into_diagnostic()?;
             }
         }
 
@@ -303,13 +347,18 @@ impl<'ctx> LLVMCodegen<'ctx> {
     fn operand_to_llvm_value(&self, operand: &IrOperand) -> Result<BasicValueEnum<'ctx>> {
         match operand {
             IrOperand::Constant(constant) => Ok(self.ir_constant_to_llvm(constant)?),
-            IrOperand::Local(name) | IrOperand::Temp(name) => {
+            IrOperand::Local(name) => {
                 let ptr = self.get_local_pointer(name)?;
+                // We need the type to load. For now assuming i32 if not found.
+                // In a real compiler, we'd track types in LLVMCodegen.
                 let value = self
                     .builder
                     .build_load(self.context.i32_type(), ptr, &format!("load_{}", name))
                     .into_diagnostic()?;
                 Ok(value)
+            }
+            IrOperand::Temp(name) => {
+                self.temps.get(name).copied().ok_or_else(|| miette::miette!("Temp variable not found: {}", name))
             }
             IrOperand::Global(name) => {
                 let global = self
@@ -385,22 +434,17 @@ impl<'ctx> LLVMCodegen<'ctx> {
     /// Convert IR type to LLVM type
     fn ir_type_to_llvm(&self, type_: &IrType) -> BasicTypeEnum<'ctx> {
         match type_ {
-            IrType::Void => {
-                // Void is not a BasicTypeEnum, use i32 as placeholder
-                // This will be handled specially in contexts where void is needed
-                self.context.i32_type().into()
-            }
+            IrType::Void => self.context.i32_type().into(),
             IrType::Bool => self.context.i8_type().into(),
-            IrType::Int8 => self.context.i8_type().into(),
-            IrType::Int16 => self.context.i16_type().into(),
-            IrType::Int32 => self.context.i32_type().into(),
-            IrType::Int64 => self.context.i64_type().into(),
-            IrType::Uint8 => self.context.i8_type().into(),
-            IrType::Uint16 => self.context.i16_type().into(),
-            IrType::Uint32 => self.context.i32_type().into(),
-            IrType::Uint64 => self.context.i64_type().into(),
+            IrType::Int8 | IrType::Uint8 => self.context.i8_type().into(),
+            IrType::Int16 | IrType::Uint16 => self.context.i16_type().into(),
+            IrType::Int32 | IrType::Uint32 => self.context.i32_type().into(),
+            IrType::Int64 | IrType::Uint64 => self.context.i64_type().into(),
+            IrType::Int128 | IrType::Uint128 => self.context.i128_type().into(),
+            IrType::Isize | IrType::Usize => self.context.i64_type().into(), // Assuming 64-bit
             IrType::Float32 => self.context.f32_type().into(),
             IrType::Float64 => self.context.f64_type().into(),
+            IrType::String => self.context.i8_type().ptr_type(AddressSpace::default()).into(),
             IrType::Pointer(_inner) => self.context.i8_type().ptr_type(AddressSpace::default()).into(),
             IrType::Array(inner, size) => {
                 self.ir_type_to_llvm(inner).array_type(*size as u32).into()
@@ -413,7 +457,6 @@ impl<'ctx> LLVMCodegen<'ctx> {
             }
             IrType::Function(_, _) => {
                 // Function types are handled separately in codegen_function_decl
-                // Return i32 as fallback
                 self.context.i32_type().into()
             }
         }
