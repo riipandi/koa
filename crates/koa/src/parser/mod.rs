@@ -564,7 +564,44 @@ impl Parser {
             let expr = self.parse_unary_expr()?;
             return Ok(Expression::Unary(UnaryExpr { op, expr: Box::new(expr), span }));
         }
-        self.parse_primary_expr()
+        self.parse_postfix_expr()
+    }
+
+    fn parse_postfix_expr(&mut self) -> Result<Expression> {
+        let mut expr = self.parse_primary_expr()?;
+        loop {
+            match self.peek_kind() {
+                Some(TokenKind::LParen) => {
+                    self.advance();
+                    let mut args = Vec::new();
+                    while !self.check(TokenKind::RParen) && !self.is_at_end() {
+                        args.push(Box::new(self.parse_expression()?));
+                        if !self.match_token(TokenKind::Comma) { break; }
+                    }
+                    let r_paren_span = self.consume_token(TokenKind::RParen)?.span;
+                    let span = expr.span_info().combine(r_paren_span);
+                    expr = Expression::Call(CallExpr { callee: Box::new(expr), args, span });
+                }
+                Some(TokenKind::Dot) => {
+                    self.advance();
+                    let (property, prop_span) = {
+                        let t = self.consume_token(TokenKind::Ident)?;
+                        (t.literal.clone().unwrap_or_default(), t.span)
+                    };
+                    let span = expr.span_info().combine(prop_span);
+                    expr = Expression::Member(MemberExpr { object: Box::new(expr), property, span });
+                }
+                Some(TokenKind::LBracket) => {
+                    self.advance();
+                    let index = self.parse_expression()?;
+                    let r_bracket_span = self.consume_token(TokenKind::RBracket)?.span;
+                    let span = expr.span_info().combine(r_bracket_span);
+                    expr = Expression::Index(IndexExpr { object: Box::new(expr), index: Box::new(index), span });
+                }
+                _ => break,
+            }
+        }
+        Ok(expr)
     }
 
     fn parse_primary_expr(&mut self) -> Result<Expression> {
@@ -598,8 +635,24 @@ impl Parser {
                 Ok(Expression::Array(ArrayExpr { elements, span }))
             }
             Some(TokenKind::Ident) => {
-                let t = self.advance();
-                Ok(Expression::Identifier(t.literal.clone().unwrap_or_default()))
+                let name_token = self.advance();
+                let name = name_token.literal.clone().unwrap_or_default();
+                let name_span = name_token.span;
+                if self.check(TokenKind::LBrace) {
+                    self.advance();
+                    let mut fields = Vec::new();
+                    while !self.check(TokenKind::RBrace) && !self.is_at_end() {
+                        let field_name = self.consume_identifier()?;
+                        self.consume_token(TokenKind::Colon)?;
+                        let value = self.parse_expression()?;
+                        fields.push(StructField { name: field_name, value: Box::new(value), span: name_span });
+                        if !self.match_token(TokenKind::Comma) { break; }
+                    }
+                    let r_brace_span = self.consume_token(TokenKind::RBrace)?.span;
+                    Ok(Expression::Struct(StructExpr { name, fields, span: name_span.combine(r_brace_span) }))
+                } else {
+                    Ok(Expression::Identifier(name))
+                }
             }
             Some(TokenKind::LParen) => {
                 self.advance();
@@ -721,7 +774,17 @@ impl SpanExt for Expression {
             Expression::Literal(_) => Span::default(),
             Expression::Identifier(_) => Span::default(),
             Expression::Call(e) => e.span,
-            _ => Span::default(),
+            Expression::Member(e) => e.span,
+            Expression::Index(e) => e.span,
+            Expression::If(e) => e.span,
+            Expression::Block(e) => e.span,
+            Expression::ErrorUnion(e) => e.span,
+            Expression::Array(e) => e.span,
+            Expression::Tuple(e) => e.span,
+            Expression::Struct(e) => e.span,
+            Expression::Await(e) => e.span,
+            Expression::Try(e) => e.span,
+            Expression::Cast(e) => e.span,
         }
     }
 }
