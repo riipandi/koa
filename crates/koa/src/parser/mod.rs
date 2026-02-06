@@ -538,7 +538,7 @@ impl Parser {
 
     fn parse_primary_expr(&mut self) -> Result<Expression> {
         match self.peek_kind() {
-            Some(TokenKind::Number) => {
+            Some(TokenKind::IntLiteral) | Some(TokenKind::FloatLiteral) => {
                 let token = self.advance();
                 let value = token
                     .literal
@@ -547,7 +547,7 @@ impl Parser {
                     .unwrap_or(0.0);
                 Ok(Expression::Literal(Literal::Number(value)))
             }
-            Some(TokenKind::String) => {
+            Some(TokenKind::StringLiteral) => {
                 let token = self.advance();
                 let value = token.literal.clone().unwrap_or_default();
                 Ok(Expression::Literal(Literal::String(value)))
@@ -628,7 +628,7 @@ impl Parser {
 
     fn consume_string(&mut self) -> Result<String> {
         let token = self.advance();
-        if token.kind == TokenKind::String {
+        if token.kind == TokenKind::StringLiteral {
             Ok(token.literal.clone().unwrap_or_default())
         } else {
             Err(miette::miette!("Expected string"))

@@ -139,7 +139,7 @@ pub fn main(): i32 {
 - [x] Documentation planning
 
 ### In Progress
-- [ ] Milestone 1: Lexer Implementation
+- [x] Milestone 1: Lexer Implementation
 - [ ] Milestone 2: Parser Implementation
 - [ ] Milestone 3: AST definitions
 

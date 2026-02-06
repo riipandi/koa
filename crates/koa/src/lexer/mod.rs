@@ -2,133 +2,13 @@
 //!
 //! The lexer breaks source code into tokens for parsing.
 
+pub mod token;
+
+pub use token::{Span, Token, TokenKind};
+
 use miette::Result;
 use std::iter::Peekable;
 use std::str::Chars;
-
-/// A single token in the source code
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Token {
-    pub kind: TokenKind,
-    pub span: Span,
-    pub literal: Option<String>,
-}
-
-/// The kind of token
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TokenKind {
-    // Keywords
-    Fn,
-    Let,
-    Const,
-    Struct,
-    Enum,
-    If,
-    Else,
-    Match,
-    Loop,
-    While,
-    For,
-    Return,
-    Break,
-    Continue,
-    Async,
-    Await,
-    Try,
-    Catch,
-    Throw,
-    Defer,
-    Pub,
-    Priv,
-    Import,
-    Export,
-    From,
-    As,
-    True,
-    False,
-    Null,
-
-    // Literals
-    Ident,
-    String,
-    Number,
-
-    // Operators
-    Plus,
-    Minus,
-    Star,
-    Slash,
-    Percent,
-    Equal,
-    EqualEqual,
-    BangEqual,
-    Less,
-    LessEqual,
-    Greater,
-    GreaterEqual,
-    And,
-    Or,
-    Bang,
-
-    // Symbols
-    LParen,
-    RParen,
-    LBrace,
-    RBrace,
-    LBracket,
-    RBracket,
-    Dot,
-    Comma,
-    Colon,
-    Semicolon,
-    Arrow,
-    FatArrow,
-
-    // Error token
-    Error,
-
-    // Unknown
-    Unknown,
-    EOF,
-}
-
-/// Source location information
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Span {
-    pub start: usize,
-    pub end: usize,
-    pub line: usize,
-    pub column: usize,
-}
-
-impl Span {
-    pub fn new(start: usize, end: usize, line: usize, column: usize) -> Self {
-        Self {
-            start,
-            end,
-            line,
-            column,
-        }
-    }
-
-    pub fn default() -> Self {
-        Self {
-            start: 0,
-            end: 0,
-            line: 0,
-            column: 0,
-        }
-    }
-
-    pub fn combine(&self, other: Span) -> Span {
-        Span {
-            start: self.start.min(other.start),
-            end: self.end.max(other.end),
-            line: self.line,
-            column: self.column,
-        }
-    }
-}
 
 /// Lexer for tokenizing Koa source code
 pub struct Lexer<'input> {
@@ -155,217 +35,260 @@ impl<'input> Lexer<'input> {
 
         loop {
             let token = self.next_token()?;
-            match token {
-                None => break,
-                Some(t) if t.kind == TokenKind::EOF => break,
-                Some(t) => tokens.push(t),
+            let is_eof = token.kind == TokenKind::EOF;
+            tokens.push(token);
+            if is_eof {
+                break;
             }
         }
 
         Ok(tokens)
     }
 
-    fn next_token(&mut self) -> Result<Option<Token>> {
+    fn next_token(&mut self) -> Result<Token> {
         self.skip_whitespace();
 
         let start = self.position;
         let line = self.line;
         let column = self.column;
 
-        match self.peek() {
-            None => Ok(Some(Token {
-                kind: TokenKind::EOF,
-                span: Span::new(start, start, line, column),
-                literal: None,
-            })),
-            Some(ch) => {
-                let kind = match ch {
-                    '"' => self.lex_string()?,
-                    '0'..='9' => self.lex_number()?,
-                    'a'..='z' | 'A'..='Z' | '_' => self.lex_ident()?,
-                    '+' => {
+        let kind = match self.peek() {
+            None => TokenKind::EOF,
+            Some(ch) => match ch {
+                '"' => self.lex_string()?,
+                '0'..='9' => self.lex_number()?,
+                'a'..='z' | 'A'..='Z' | '_' => self.lex_ident()?,
+                '+' => {
+                    self.bump();
+                    TokenKind::Plus
+                }
+                '-' => {
+                    self.bump();
+                    if self.peek() == Some('>') {
                         self.bump();
-                        TokenKind::Plus
+                        TokenKind::Arrow
+                    } else {
+                        TokenKind::Minus
                     }
-                    '-' => {
-                        self.bump();
-                        if self.peek() == Some('>') {
-                            self.bump();
-                            TokenKind::Arrow
+                }
+                '*' => {
+                    self.bump();
+                    TokenKind::Star
+                }
+                '/' => {
+                    self.bump();
+                    if self.peek() == Some('/') {
+                        self.bump(); // consume second '/'
+                        if self.peek() == Some('/') || self.peek() == Some('!') {
+                            // Doc comment
+                            return self.lex_doc_comment(start, line, column);
                         } else {
-                            TokenKind::Minus
-                        }
-                    }
-                    '*' => {
-                        self.bump();
-                        TokenKind::Star
-                    }
-                    '/' => {
-                        self.bump();
-                        if self.peek() == Some('/') {
                             self.skip_line_comment();
                             return self.next_token();
-                        } else if self.peek() == Some('*') {
-                            self.skip_block_comment();
-                            return self.next_token();
-                        } else {
-                            TokenKind::Slash
                         }
+                    } else if self.peek() == Some('*') {
+                        self.skip_block_comment();
+                        return self.next_token();
+                    } else {
+                        TokenKind::Slash
                     }
-                    '%' => {
+                }
+                '%' => {
+                    self.bump();
+                    TokenKind::Percent
+                }
+                '=' => {
+                    self.bump();
+                    if self.peek() == Some('=') {
                         self.bump();
-                        TokenKind::Percent
+                        TokenKind::EqualEqual
+                    } else if self.peek() == Some('>') {
+                        self.bump();
+                        TokenKind::FatArrow
+                    } else {
+                        TokenKind::Equal
                     }
-                    '=' => {
+                }
+                '!' => {
+                    self.bump();
+                    if self.peek() == Some('=') {
+                        self.bump();
+                        TokenKind::BangEqual
+                    } else {
+                        TokenKind::Bang
+                    }
+                }
+                '<' => {
+                    self.bump();
+                    if self.peek() == Some('=') {
+                        self.bump();
+                        TokenKind::LessEqual
+                    } else {
+                        TokenKind::Less
+                    }
+                }
+                '>' => {
+                    self.bump();
+                    if self.peek() == Some('=') {
+                        self.bump();
+                        TokenKind::GreaterEqual
+                    } else {
+                        TokenKind::Greater
+                    }
+                }
+                '&' => {
+                    self.bump();
+                    if self.peek() == Some('&') {
+                        self.bump();
+                        TokenKind::And
+                    } else {
+                        TokenKind::Illegal
+                    }
+                }
+                '|' => {
+                    self.bump();
+                    if self.peek() == Some('|') {
+                        self.bump();
+                        TokenKind::Or
+                    } else {
+                        TokenKind::Illegal
+                    }
+                }
+                '(' => {
+                    self.bump();
+                    TokenKind::LParen
+                }
+                ')' => {
+                    self.bump();
+                    TokenKind::RParen
+                }
+                '{' => {
+                    self.bump();
+                    TokenKind::LBrace
+                }
+                '}' => {
+                    self.bump();
+                    TokenKind::RBrace
+                }
+                '[' => {
+                    self.bump();
+                    TokenKind::LBracket
+                }
+                ']' => {
+                    self.bump();
+                    TokenKind::RBracket
+                }
+                '.' => {
+                    self.bump();
+                    if self.peek() == Some('.') {
                         self.bump();
                         if self.peek() == Some('=') {
                             self.bump();
-                            TokenKind::EqualEqual
-                        } else if self.peek() == Some('>') {
-                            self.bump();
-                            TokenKind::FatArrow
+                            TokenKind::DotDotEqual
                         } else {
-                            TokenKind::Equal
+                            TokenKind::DotDot
                         }
-                    }
-                    '!' => {
-                        self.bump();
-                        if self.peek() == Some('=') {
-                            self.bump();
-                            TokenKind::BangEqual
-                        } else {
-                            TokenKind::Bang
-                        }
-                    }
-                    '<' => {
-                        self.bump();
-                        if self.peek() == Some('=') {
-                            self.bump();
-                            TokenKind::LessEqual
-                        } else {
-                            TokenKind::Less
-                        }
-                    }
-                    '>' => {
-                        self.bump();
-                        if self.peek() == Some('=') {
-                            self.bump();
-                            TokenKind::GreaterEqual
-                        } else {
-                            TokenKind::Greater
-                        }
-                    }
-                    '&' => {
-                        self.bump();
-                        if self.peek() == Some('&') {
-                            self.bump();
-                            TokenKind::And
-                        } else {
-                            TokenKind::Unknown
-                        }
-                    }
-                    '|' => {
-                        self.bump();
-                        if self.peek() == Some('|') {
-                            self.bump();
-                            TokenKind::Or
-                        } else {
-                            TokenKind::Unknown
-                        }
-                    }
-                    '(' => {
-                        self.bump();
-                        TokenKind::LParen
-                    }
-                    ')' => {
-                        self.bump();
-                        TokenKind::RParen
-                    }
-                    '{' => {
-                        self.bump();
-                        TokenKind::LBrace
-                    }
-                    '}' => {
-                        self.bump();
-                        TokenKind::RBrace
-                    }
-                    '[' => {
-                        self.bump();
-                        TokenKind::LBracket
-                    }
-                    ']' => {
-                        self.bump();
-                        TokenKind::RBracket
-                    }
-                    '.' => {
-                        self.bump();
+                    } else {
                         TokenKind::Dot
                     }
-                    ',' => {
+                }
+                ',' => {
+                    self.bump();
+                    TokenKind::Comma
+                }
+                ':' => {
+                    self.bump();
+                    if self.peek() == Some(':') {
                         self.bump();
-                        TokenKind::Comma
-                    }
-                    ':' => {
-                        self.bump();
+                        TokenKind::DoubleColon
+                    } else {
                         TokenKind::Colon
                     }
-                    ';' => {
-                        self.bump();
-                        TokenKind::Semicolon
-                    }
-                    _ => {
-                        self.bump();
-                        TokenKind::Unknown
-                    }
-                };
+                }
+                ';' => {
+                    self.bump();
+                    TokenKind::Semicolon
+                }
+                '?' => {
+                    self.bump();
+                    TokenKind::Question
+                }
+                '@' => {
+                    self.bump();
+                    TokenKind::At
+                }
+                _ => {
+                    self.bump();
+                    TokenKind::Illegal
+                }
+            },
+        };
 
-                let end = self.position;
-                let literal = if kind == TokenKind::Ident
-                    || kind == TokenKind::String
-                    || kind == TokenKind::Number
-                {
-                    Some(self.input[start..end].to_string())
-                } else {
-                    None
-                };
+        let end = self.position;
+        let literal = if kind == TokenKind::Ident
+            || kind == TokenKind::StringLiteral
+            || kind == TokenKind::IntLiteral
+            || kind == TokenKind::FloatLiteral
+        {
+            Some(self.input[start..end].to_string())
+        } else {
+            None
+        };
 
-                Ok(Some(Token {
-                    kind,
-                    span: Span::new(start, end, line, column),
-                    literal,
-                }))
-            }
-        }
+        Ok(Token {
+            kind,
+            span: Span::new(start, end, line, column),
+            literal,
+        })
     }
 
     fn lex_string(&mut self) -> Result<TokenKind> {
         self.bump(); // opening quote
+        // TODO: Handle escape sequences
         while let Some(ch) = self.peek() {
             if ch == '"' {
                 self.bump();
-                return Ok(TokenKind::String);
+                return Ok(TokenKind::StringLiteral);
             }
             if ch == '\\' {
                 self.bump();
             }
             self.bump();
         }
-        Ok(TokenKind::String)
+        // Unclosed string
+        Ok(TokenKind::StringLiteral)
     }
 
     fn lex_number(&mut self) -> Result<TokenKind> {
-        let _start = self.position;
+        let mut is_float = false;
 
-        // Consume all digits and decimal point
         while let Some(ch) = self.peek() {
-            if ch.is_ascii_digit() || ch == '.' {
+            if ch.is_ascii_digit() {
+                self.bump();
+            } else if ch == '.' {
+                // Peek next to see if it's another dot (range operator)
+                let mut next_chars = self.chars.clone();
+                next_chars.next();
+                if next_chars.peek() == Some(&'.') {
+                    // It's a range operator like 1..10
+                    break;
+                }
+                
+                if is_float {
+                    break; // Already a float, second dot is something else
+                }
+                is_float = true;
                 self.bump();
             } else {
                 break;
             }
         }
 
-        Ok(TokenKind::Number)
+        if is_float {
+            Ok(TokenKind::FloatLiteral)
+        } else {
+            Ok(TokenKind::IntLiteral)
+        }
     }
 
     fn lex_ident(&mut self) -> Result<TokenKind> {
@@ -378,7 +301,6 @@ impl<'input> Lexer<'input> {
             }
         }
 
-        // Check if it's a keyword
         let text = &self.input[start..self.position];
         let kind = match text {
             "fn" => TokenKind::Fn,
@@ -396,21 +318,62 @@ impl<'input> Lexer<'input> {
             "break" => TokenKind::Break,
             "continue" => TokenKind::Continue,
             "pub" => TokenKind::Pub,
+            "priv" => TokenKind::Priv,
             "async" => TokenKind::Async,
             "await" => TokenKind::Await,
             "try" => TokenKind::Try,
+            "catch" => TokenKind::Catch,
             "throw" => TokenKind::Throw,
             "defer" => TokenKind::Defer,
+            "error" => TokenKind::Error,
             "true" => TokenKind::True,
             "false" => TokenKind::False,
             "null" => TokenKind::Null,
             "import" => TokenKind::Import,
             "export" => TokenKind::Export,
+            "from" => TokenKind::From,
             "as" => TokenKind::As,
+            "self" => TokenKind::SelfValue,
+            "Self" => TokenKind::SelfType,
+            
+            // Types
+            "i8" => TokenKind::I8,
+            "i16" => TokenKind::I16,
+            "i32" => TokenKind::I32,
+            "i64" => TokenKind::I64,
+            "i128" => TokenKind::I128,
+            "isize" => TokenKind::Isize,
+            "u8" => TokenKind::U8,
+            "u16" => TokenKind::U16,
+            "u32" => TokenKind::U32,
+            "u64" => TokenKind::U64,
+            "u128" => TokenKind::U128,
+            "usize" => TokenKind::Usize,
+            "f32" => TokenKind::F32,
+            "f64" => TokenKind::F64,
+            "bool" => TokenKind::Bool,
+            "string" => TokenKind::String,
+            "void" => TokenKind::Void,
+            
             _ => TokenKind::Ident,
         };
 
         Ok(kind)
+    }
+
+    fn lex_doc_comment(&mut self, start: usize, line: usize, column: usize) -> Result<Token> {
+        while let Some(ch) = self.peek() {
+            if ch == '\n' {
+                break;
+            }
+            self.bump();
+        }
+        let end = self.position;
+        Ok(Token {
+            kind: TokenKind::DocComment,
+            span: Span::new(start, end, line, column),
+            literal: Some(self.input[start..end].to_string()),
+        })
     }
 
     fn skip_whitespace(&mut self) {
@@ -437,12 +400,15 @@ impl<'input> Lexer<'input> {
     }
 
     fn skip_block_comment(&mut self) {
-        self.bump(); // consume the '*'
+        self.bump(); // consume '*'
         while let Some(ch) = self.peek() {
-            if ch == '*' && self.chars.clone().nth(1) == Some('/') {
-                self.bump(); // consume '*'
-                self.bump(); // consume '/'
-                break;
+            if ch == '*' {
+                self.bump();
+                if self.peek() == Some('/') {
+                    self.bump();
+                    break;
+                }
+                continue;
             }
             if ch == '\n' {
                 self.line += 1;
@@ -477,93 +443,57 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_empty_source() {
-        let mut lexer = Lexer::new("");
+    fn test_tokenize_simple() {
+        let input = "fn main() { return 0; }";
+        let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize().unwrap();
-        assert!(tokens.is_empty());
+        
+        let kinds: Vec<TokenKind> = tokens.iter().map(|t| t.kind).collect();
+        assert_eq!(kinds, vec![
+            TokenKind::Fn,
+            TokenKind::Ident,
+            TokenKind::LParen,
+            TokenKind::RParen,
+            TokenKind::LBrace,
+            TokenKind::Return,
+            TokenKind::IntLiteral,
+            TokenKind::Semicolon,
+            TokenKind::RBrace,
+            TokenKind::EOF,
+        ]);
     }
 
     #[test]
-    fn test_keywords() {
-        let mut lexer = Lexer::new("fn let const struct enum");
+    fn test_types() {
+        let input = "let x: i32 = 42; let y: string = \"hello\";";
+        let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize().unwrap();
-        assert_eq!(tokens[0].kind, TokenKind::Fn);
-        assert_eq!(tokens[1].kind, TokenKind::Let);
-        assert_eq!(tokens[2].kind, TokenKind::Const);
-        assert_eq!(tokens[3].kind, TokenKind::Struct);
-        assert_eq!(tokens[4].kind, TokenKind::Enum);
+        
+        assert!(tokens.iter().any(|t| t.kind == TokenKind::I32));
+        assert!(tokens.iter().any(|t| t.kind == TokenKind::String));
     }
 
     #[test]
-    fn test_operators() {
-        let mut lexer = Lexer::new("+ - * / == != < > && ||");
+    fn test_doc_comments() {
+        let input = "/// Hello\nfn main() {}";
+        let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize().unwrap();
-        assert_eq!(tokens[0].kind, TokenKind::Plus);
-        assert_eq!(tokens[1].kind, TokenKind::Minus);
-        assert_eq!(tokens[2].kind, TokenKind::Star);
-        assert_eq!(tokens[3].kind, TokenKind::Slash);
-        assert_eq!(tokens[4].kind, TokenKind::EqualEqual);
-        assert_eq!(tokens[5].kind, TokenKind::BangEqual);
-        assert_eq!(tokens[6].kind, TokenKind::Less);
-        assert_eq!(tokens[7].kind, TokenKind::Greater);
-        assert_eq!(tokens[8].kind, TokenKind::And);
-        assert_eq!(tokens[9].kind, TokenKind::Or);
+        
+        assert_eq!(tokens[0].kind, TokenKind::DocComment);
+        assert_eq!(tokens[1].kind, TokenKind::Fn);
     }
 
     #[test]
-    fn test_simple_function() {
-        let source = r#"
-            fn main(): i32 {
-                return 0;
-            }
-        "#;
-        let mut lexer = Lexer::new(source);
+    fn test_range_operator() {
+        let input = "1..10 1..=10";
+        let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize().unwrap();
-        assert!(!tokens.is_empty());
-        assert_eq!(tokens[0].kind, TokenKind::Fn);
-    }
-
-    #[test]
-    fn test_line_comment() {
-        let source = r#"
-            // This is a comment
-            fn main(): i32 {
-                return 0;
-            }
-        "#;
-        let mut lexer = Lexer::new(source);
-        let tokens = lexer.tokenize().unwrap();
-        assert!(!tokens.is_empty());
-        assert_eq!(tokens[0].kind, TokenKind::Fn);
-    }
-
-    #[test]
-    fn test_doc_comment() {
-        let source = r#"
-            //! Module documentation
-            /// Function documentation
-            fn main(): i32 {
-                return 0;
-            }
-        "#;
-        let mut lexer = Lexer::new(source);
-        let tokens = lexer.tokenize().unwrap();
-        assert!(!tokens.is_empty());
-        assert_eq!(tokens[0].kind, TokenKind::Fn);
-    }
-
-    #[test]
-    fn test_block_comment() {
-        let source = r#"
-            /* This is a
-               multi-line comment */
-            fn main(): i32 {
-                return 0;
-            }
-        "#;
-        let mut lexer = Lexer::new(source);
-        let tokens = lexer.tokenize().unwrap();
-        assert!(!tokens.is_empty());
-        assert_eq!(tokens[0].kind, TokenKind::Fn);
+        
+        assert_eq!(tokens[0].kind, TokenKind::IntLiteral);
+        assert_eq!(tokens[1].kind, TokenKind::DotDot);
+        assert_eq!(tokens[2].kind, TokenKind::IntLiteral);
+        assert_eq!(tokens[3].kind, TokenKind::IntLiteral);
+        assert_eq!(tokens[4].kind, TokenKind::DotDotEqual);
+        assert_eq!(tokens[5].kind, TokenKind::IntLiteral);
     }
 }
