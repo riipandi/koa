@@ -334,7 +334,7 @@ impl IrLowerer {
                         import_decl
                             .from
                             .split('/')
-                            .last()
+                            .next_back()
                             .unwrap_or(&import_decl.from)
                             .to_string()
                     });
@@ -352,11 +352,11 @@ impl IrLowerer {
 
                     let mut imported_funcs = Vec::new();
                     for decl in &ast.declarations {
-                        if let Declaration::FnDecl(fn_decl) = decl {
-                            if fn_decl.is_pub {
-                                self.fn_map.insert(fn_decl.name.clone(), fn_decl.clone());
-                                imported_funcs.push(fn_decl.name.clone());
-                            }
+                        if let Declaration::FnDecl(fn_decl) = decl
+                            && fn_decl.is_pub
+                        {
+                            self.fn_map.insert(fn_decl.name.clone(), fn_decl.clone());
+                            imported_funcs.push(fn_decl.name.clone());
                         }
                     }
 
@@ -378,14 +378,15 @@ impl IrLowerer {
                     let ast = parser.parse()?;
 
                     for decl in &ast.declarations {
-                        if let Declaration::FnDecl(fn_decl) = decl {
-                            if fn_decl.name == *name && fn_decl.is_pub {
-                                // Create unique mangled name for imported function
-                                let module_prefix = import_decl.from.replace('/', "__");
-                                let mangled_name = format!("{}__{}", module_prefix, name);
-                                self.fn_map.insert(mangled_name.clone(), fn_decl.clone());
-                                self.import_aliases.insert(name.clone(), mangled_name);
-                            }
+                        if let Declaration::FnDecl(fn_decl) = decl
+                            && fn_decl.name == *name
+                            && fn_decl.is_pub
+                        {
+                            // Create unique mangled name for imported function
+                            let module_prefix = import_decl.from.replace('/', "__");
+                            let mangled_name = format!("{}__{}", module_prefix, name);
+                            self.fn_map.insert(mangled_name.clone(), fn_decl.clone());
+                            self.import_aliases.insert(name.clone(), mangled_name);
                         }
                     }
                 }

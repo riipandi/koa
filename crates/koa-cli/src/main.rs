@@ -17,6 +17,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Initialize a new Koa project
+    Init {
+        /// Project directory name (defaults to current directory name)
+        dir: Option<String>,
+    },
     /// Build the project
     Build {
         /// Input file (optional if Koa.toml exists)
@@ -41,6 +46,7 @@ fn main() {
     let cli = Cli::parse();
 
     let result = match &cli.command {
+        Commands::Init { dir } => commands::init::execute(dir.as_deref()),
         Commands::Doctor => commands::doctor::check(),
         Commands::Build {
             input,

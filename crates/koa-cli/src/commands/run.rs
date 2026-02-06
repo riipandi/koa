@@ -13,18 +13,16 @@ pub fn execute(input: Option<&str>, _output: Option<&str>) -> Result<()> {
 
     build::execute(input, None, "debug")?;
 
-    let exe_path = if let Some(project_dir) = get_project_dir(&target_path) {
+    let exe_path = if let Some(project_dir) = get_project_dir(target_path) {
         if cfg!(target_os = "windows") {
             project_dir.join("build/debug/main.exe")
         } else {
             project_dir.join("build/debug/main")
         }
+    } else if cfg!(target_os = "windows") {
+        target_path.with_extension("exe")
     } else {
-        if cfg!(target_os = "windows") {
-            target_path.with_extension("exe")
-        } else {
-            target_path.with_extension("")
-        }
+        target_path.with_extension("")
     };
 
     println!(
@@ -49,19 +47,13 @@ pub fn execute(input: Option<&str>, _output: Option<&str>) -> Result<()> {
         anyhow::bail!("Program exited with status: {}", output.status);
     }
 
-    println!(
-        "{} {}",
-        "✓".green(),
-        format!("Program exited successfully").dimmed()
-    );
+    println!("{} {}", "✓".green(), "Program exited successfully".dimmed());
 
     Ok(())
 }
 
 fn get_project_dir(target_path: &Path) -> Option<&Path> {
-    if target_path.is_dir() {
-        Some(target_path)
-    } else if target_path.join("Koa.toml").exists() {
+    if target_path.is_dir() || target_path.join("Koa.toml").exists() {
         Some(target_path)
     } else if target_path.join("src/main.koa").exists() {
         Some(target_path.parent()?)

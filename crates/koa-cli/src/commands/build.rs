@@ -126,7 +126,7 @@ pub fn execute(input: Option<&str>, output: Option<&str>, _mode: &str) -> Result
     println!(
         "\n{} {} in {:.2}s",
         "✓".green().bold(),
-        format!("Compilation complete").cyan(),
+        "Compilation complete".cyan(),
         duration.as_secs_f64()
     );
     println!(
