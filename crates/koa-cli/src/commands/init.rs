@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use colored::*;
+use inquire::Text;
 use std::fs;
 use std::path::Path;
 
@@ -10,19 +11,32 @@ const KOA_TOML_TEMPLATE: &str = "[package]\nname = \"{name}\"\nversion = \"0.1.0
 const MAIN_KOA_TEMPLATE: &str =
     "fn main(): i32 {\n    println(\"Hello, World!\");\n    return 0;\n}\n";
 
+const GITIGNORE_CONTENT: &str = ".DS_Store\n.DS_Store?\nThumbs.db\nehthumbs.db\nDesktop.ini\n$RECYCLE.BIN/\n*.sqlite*\n*.sqlite3*\n*.db\n.cache/\n.temp/\n/build/\n/temp\n";
+
 pub fn execute(dir: Option<&str>) -> Result<()> {
-    let project_name = get_project_name(dir)?;
-    let project_dir = Path::new(&project_name);
+    let current_dir = std::env::current_dir()?;
+    let is_empty = is_dir_empty(&current_dir)?;
 
-    if project_dir.exists() {
-        anyhow::bail!(
-            "{} Directory '{}' already exists",
-            "Error:".red().bold(),
-            project_name
-        );
+    let (project_name, project_dir, use_current_dir) = if dir.is_none() && is_empty {
+        let name = prompt_project_name()?;
+        (name.clone(), current_dir.clone(), true)
+    } else {
+        let name = get_project_name(dir)?;
+        let dir_path = Path::new(&name);
+        if dir_path.exists() {
+            anyhow::bail!(
+                "{} Directory '{}' already exists",
+                "Error:".red().bold(),
+                name
+            );
+        }
+        let dir_buf = dir_path.to_path_buf();
+        (name, dir_buf, false)
+    };
+
+    if !project_dir.exists() {
+        println!("{} {}", "Creating".bold().cyan(), project_name.cyan());
     }
-
-    println!("{} {}", "Creating".bold().cyan(), project_name.cyan());
 
     let target = get_target_triple();
     let author = get_author();
@@ -48,21 +62,71 @@ pub fn execute(dir: Option<&str>) -> Result<()> {
     fs::write(project_dir.join("src/main.koa"), MAIN_KOA_TEMPLATE)
         .with_context(|| "Failed to create src/main.koa")?;
 
+    fs::write(project_dir.join(".gitignore"), GITIGNORE_CONTENT)
+        .with_context(|| "Failed to create .gitignore")?;
+
     println!("{} {}", "✓ Created".green().bold(), "README.md".green());
     println!("{} {}", "✓ Created".green().bold(), "Koa.toml".green());
     println!("{} {}", "✓ Created".green().bold(), "src/main.koa".green());
+    println!("{} {}", "✓ Created".green().bold(), ".gitignore".green());
 
-    println!();
-    println!(
-        "{} {} `cd {}` and run `{} {}`!",
-        "Next:".bold().cyan(),
-        "Navigate to".cyan(),
-        project_name.cyan(),
-        "koa run".green(),
-        "to get started".green()
-    );
+    if !use_current_dir {
+        println!();
+        println!(
+            "{} {} `cd {}` and run `{} {}`!",
+            "Next:".bold().cyan(),
+            "Navigate to".cyan(),
+            project_name.cyan(),
+            "koa run".green(),
+            "to get started".green()
+        );
+    } else {
+        println!();
+        println!(
+            "{} {} `{} {}`!",
+            "Next:".bold().cyan(),
+            "Run".cyan(),
+            "koa run".green(),
+            "to get started".green()
+        );
+    }
 
     Ok(())
+}
+
+fn prompt_project_name() -> Result<String> {
+    let current_dir_name = std::env::current_dir()?
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("koa_project")
+        .to_string();
+
+    let ans = Text::new("What is your project's name?")
+        .with_default(&current_dir_name)
+        .with_validator(|input: &str| {
+            if input.is_empty() {
+                Ok(inquire::validator::Validation::Invalid(
+                    "Project name cannot be empty".into(),
+                ))
+            } else if !input
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+            {
+                Ok(inquire::validator::Validation::Invalid(
+                    "Use only letters, numbers, underscores, and hyphens".into(),
+                ))
+            } else {
+                Ok(inquire::validator::Validation::Valid)
+            }
+        })
+        .prompt()?;
+
+    Ok(ans)
+}
+
+fn is_dir_empty(path: &Path) -> Result<bool> {
+    let entries = fs::read_dir(path)?;
+    Ok(entries.count() == 0)
 }
 
 fn get_project_name(dir: Option<&str>) -> Result<String> {

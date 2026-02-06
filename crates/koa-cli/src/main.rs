@@ -11,6 +11,10 @@ include!(concat!(env!("OUT_DIR"), "/version.rs"));
 #[command(about = "The Koa Programming Language Compiler & Toolchain", long_about = None)]
 #[command(version = VERSION)]
 struct Cli {
+    /// Change working directory before executing command
+    #[arg(short = 'C', long, global = true)]
+    cwd: Option<String>,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -44,6 +48,18 @@ enum Commands {
 
 fn main() {
     let cli = Cli::parse();
+
+    if let Some(cwd) = &cli.cwd
+        && let Err(e) = std::env::set_current_dir(cwd)
+    {
+        eprintln!(
+            "{} Failed to change directory to '{}': {}",
+            "Error:".red().bold(),
+            cwd,
+            e
+        );
+        process::exit(1);
+    }
 
     let result = match &cli.command {
         Commands::Init { dir } => commands::init::execute(dir.as_deref()),

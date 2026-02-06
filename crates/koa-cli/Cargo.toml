@@ -12,6 +12,7 @@ path = "src/main.rs"
 anyhow.workspace = true
 clap.workspace = true
 colored.workspace = true
+inquire = "0.7"
 koa = { path = "../koa" }
 serde_json.workspace = true
 serde.workspace = true

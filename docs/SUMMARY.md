@@ -28,6 +28,14 @@
 
 ### Recent Updates (2026-02-07)
 
+**🎉 CLI Toolchain Complete:**
+- **Version command** - `koa --version` displays build info with git hash and timestamp
+- **Init command** - Project scaffolding with interactive mode and `.gitignore` generation
+- **Global --cwd flag** - Change working directory for any command
+- **Interactive prompts** - Using `inquire` crate for project name validation
+- **Build system** - Automatic version info generation via `build.rs`
+- All 83 tests passing, clippy clean
+
 **🎉 Module System & Standard Library Complete:**
 - **Import system** - `import * as io from "std/io"` syntax working
 - **Module resolution** - Loads and parses `library/std/*.koa` files

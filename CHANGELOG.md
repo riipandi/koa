@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - CLI Enhancements (2026-02-07)
+
+#### Version Command
+- Added `--version` / `-V` flag to display CLI version information
+  - Format: `koa VERSION OS/ARCH (GIT_HASH TIMESTAMP)`
+  - Git hash fallback to `dev` if not available
+  - Timestamp in ISO 8601 UTC format (up to minutes)
+  - Example: `koa 0.1.0 macos/aarch64 (9081a89 2026-02-06T21:53Z)`
+
+#### Init Command
+- Implemented `koa init` subcommand for project scaffolding
+- Creates project structure: `README.md`, `Koa.toml`, `src/main.koa`, `.gitignore`
+- Interactive mode when in empty directory without specifying project name
+- Validates project name (alphanumeric, underscore, hyphen only)
+- Generates `.gitignore` with common patterns:
+  ```
+  .DS_Store, Thumbs.db, *.db, *.sqlite*
+  .cache/, .temp/, /build/, /temp
+  ```
+
+#### Global --cwd Flag
+- Added `-C, --cwd <CWD>` global flag for changing working directory
+- Works with all subcommands
+- Useful for scripts and automation
+  ```bash
+  koa --cwd examples/basic run
+  koa -C examples/simple build factorial.koa
+  ```
+
+#### Files Created
+- `crates/koa-cli/src/commands/init.rs` - Init command implementation
+- `crates/koa-cli/build.rs` - Build script for version info
+
+#### Dependencies Added
+- `inquire = "0.7"` - Interactive prompts for project initialization
+
+#### Code Quality
+- Fixed all clippy warnings (collapsible if statements, useless format!, etc.)
+- All 83 tests passing
+
 ### Added - Examples Refactor & Project Detection (2026-02-07)
 
 #### Examples Restructure

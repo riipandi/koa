@@ -2,6 +2,18 @@
 
 ## Core Commands
 
+### Version
+```bash
+# Show version information
+koa --version
+# or
+koa -V
+
+# Output format:
+# koa VERSION OS/ARCH (GIT_HASH TIMESTAMP)
+# Example: koa 0.1.0 macos/aarch64 (9081a89 2026-02-06T21:53Z)
+```
+
 ### Compilation
 ```bash
 # Compile a Koa file
@@ -12,12 +24,24 @@ koa build <input.koa> -o <output>
 
 # Build in release mode
 koa build <input.koa> --mode release
+
+# Build project (auto-detects Koa.toml)
+koa build
+
+# Build with custom working directory
+koa --cwd /path/to/project build
 ```
 
 ### Running
 ```bash
 # Run a Koa file (build + execute)
 koa run <input.koa>
+
+# Run project in current directory
+koa run
+
+# Run with custom working directory
+koa --cwd /path/to/project run
 ```
 
 ### Testing
@@ -31,43 +55,78 @@ koa test --filter <test_name>
 
 ### Project Initialization
 
-#### Interactive Mode (Recommended for New Users)
-```bash
-# Guided project setup with prompts
-koa init --interactive
-
-# With project name preset
-koa init --interactive myproject
-```
-
-**Interactive Prompts:**
-```
-? Project name: myproject
-? Project type:
-  > Executable
-    Library
-? Initialize git repository? (Y/n) yes
-? Create .gitignore? (Y/n) yes
-? Create README.md? (Y/n) yes
-```
-
-#### Non-Interactive Mode
+#### Standard Usage
 ```bash
 # Create new project in directory
 koa init myproject
 
-# Create library project
-koa init --lib mylib
-
-# Create with git initialized
-koa init --git myproject
-
 # Create in current directory (must be empty)
+# Prompts for project name interactively
 koa init
-
-# Minimal project (no .gitignore or README)
-koa init --no-gitignore --no-readme minimal
 ```
+
+#### Interactive Mode (Empty Directory)
+When you run `koa init` in an empty directory, it will prompt for project name:
+```
+? What is your project's name? › my-awesome-project
+```
+
+The project name must:
+- Not be empty
+- Contain only letters, numbers, underscores, and hyphens
+
+#### Generated Files
+The `init` command creates:
+```
+myproject/
+├── .gitignore      # Git ignore patterns
+├── Koa.toml        # Project configuration
+├── README.md       # Project documentation
+└── src/
+    └── main.koa    # Entry point with hello world
+```
+
+#### .gitignore Contents
+```
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.sqlite*
+*.sqlite3*
+*.db
+.cache/
+.temp/
+/build/
+/temp
+```
+
+---
+
+## Global Options
+
+### --cwd (Change Working Directory)
+```bash
+# Format
+koa [OPTIONS] <COMMAND>
+
+# Short form
+koa -C <path> <command>
+
+# Long form
+koa --cwd <path> <command>
+
+# Examples
+koa --cwd examples/basic run
+koa -C examples/simple build factorial.koa
+```
+
+**Use Cases:**
+- Build/run projects without changing directories
+- Useful for scripts and automation
+- Works with all subcommands
 
 ---
 
@@ -184,21 +243,31 @@ The CLI now shows progress for operations:
 
 ### New Project
 ```bash
-# Initialize project
+# Method 1: Create in new directory
 koa init myproject
 cd myproject
 
-# Add dependency
-koa pkg add http --git https://github.com/riipandi/koa-http --version 0.1.0
+# Method 2: Create in current empty directory (interactive)
+mkdir myproject && cd myproject
+koa init
+# Prompts for project name
 
-# Fetch dependencies
-koa pkg fetch
+# Build and run
+koa build
+# or
+koa run
+```
 
-# Build
-koa build src/main.koa
+### Working with Multiple Projects
+```bash
+# Build project in different directory without cd
+koa --cwd ~/projects/myapp build
 
-# Run
-koa run src/main.koa
+# Run tests in another directory
+koa -C ~/projects/mylib test
+
+# Run examples
+koa --cwd examples/basic run
 ```
 
 ### Add Dependency
@@ -270,11 +339,17 @@ Error: Koa.toml not found. Are you in a Koa project?
 # General help
 koa --help
 
+# Show version
+koa --version
+# or
+koa -V
+
 # Package management help
 koa pkg --help
 
 # Specific command help
 koa pkg add --help
+koa init --help
 ```
 
 ---
