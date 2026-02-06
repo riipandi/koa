@@ -22,9 +22,18 @@
 - [x] Type substitution
 - [x] Interface satisfaction checking
 - [x] LLVM codegen integration
-- [ ] Type inference
+- [x] Type inference
 
 ### Recent Updates (2026-02-07)
+
+**Type Inference Complete:**
+- Implemented local variable type inference for literals (i32, f64, string, bool)
+- Type inference from other variables
+- Type inference from function calls
+- Type inference from struct literals and generic structs
+- Type inference from complex expressions and arithmetic
+- Added 15 new type inference tests
+- All 63 tests passing (30 typeck tests including 15 inference tests)
 
 **LLVM Codegen Integration Complete:**
 - Fixed type tracking in LLVM codegen (local_types, temp_types)
@@ -32,14 +41,13 @@
 - Generic functions now properly compile to specialized LLVM IR
 - Multiple type instantiations supported (identity<i32>, identity<f64>)
 - Generic struct instantiation support added
-- All 44 tests passing
 
 ### Next Steps
 
 **Immediate:**
 1. Enhanced interface checking (parameter types, Self support)
 2. Generics examples & docs
-3. Type inference (Hindley-Milner)
+3. Generic enums (Option<T>, Result<T,E>)
 
 **Short-term:**
 4. Generic enums (Option<T>, Result<T,E>)

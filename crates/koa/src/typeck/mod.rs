@@ -52,9 +52,19 @@ impl TypeChecker {
     fn define_symbol(&mut self, name: String, type_: Type, is_const: bool) -> Result<()> {
         if let Some(scope) = self.scopes.last_mut() {
             if scope.symbols.contains_key(&name) {
-                return Err(miette::miette!("Redefinition of symbol '{}' in this scope", name));
+                return Err(miette::miette!(
+                    "Redefinition of symbol '{}' in this scope",
+                    name
+                ));
             }
-            scope.symbols.insert(name.clone(), Symbol { name, type_, is_const });
+            scope.symbols.insert(
+                name.clone(),
+                Symbol {
+                    name,
+                    type_,
+                    is_const,
+                },
+            );
         }
         Ok(())
     }
@@ -124,9 +134,13 @@ impl TypeChecker {
 
     fn check_struct_decl(&mut self, struct_decl: &StructDecl) -> Result<()> {
         if self.structs.contains_key(&struct_decl.name) {
-            return Err(miette::miette!("Redefinition of struct '{}'", struct_decl.name));
+            return Err(miette::miette!(
+                "Redefinition of struct '{}'",
+                struct_decl.name
+            ));
         }
-        self.structs.insert(struct_decl.name.clone(), struct_decl.clone());
+        self.structs
+            .insert(struct_decl.name.clone(), struct_decl.clone());
 
         self.enter_scope();
         // Check type parameters and add them to scope
@@ -148,9 +162,13 @@ impl TypeChecker {
 
     fn check_interface_decl(&mut self, interface_decl: &InterfaceDecl) -> Result<()> {
         if self.interfaces.contains_key(&interface_decl.name) {
-            return Err(miette::miette!("Redefinition of interface '{}'", interface_decl.name));
+            return Err(miette::miette!(
+                "Redefinition of interface '{}'",
+                interface_decl.name
+            ));
         }
-        self.interfaces.insert(interface_decl.name.clone(), interface_decl.clone());
+        self.interfaces
+            .insert(interface_decl.name.clone(), interface_decl.clone());
 
         self.enter_scope();
         for tp in &interface_decl.type_params {
@@ -194,6 +212,7 @@ impl TypeChecker {
         Ok(())
     }
 
+    #[allow(clippy::collapsible_if)]
     fn check_statement(&mut self, stmt: &Statement) -> Result<()> {
         match stmt {
             Statement::Let(let_stmt) => {
@@ -206,7 +225,11 @@ impl TypeChecker {
                 let inferred_type = match (&let_stmt.type_annotation, val_type) {
                     (Some(anno), Some(val)) => {
                         if !self.is_assignable(&val, anno) {
-                            return Err(miette::miette!("Type mismatch: cannot assign {:?} to {:?}", val, anno));
+                            return Err(miette::miette!(
+                                "Type mismatch: cannot assign {:?} to {:?}",
+                                val,
+                                anno
+                            ));
                         }
                         self.check_type(anno)?;
                         anno.clone()
@@ -216,7 +239,11 @@ impl TypeChecker {
                         anno.clone()
                     }
                     (None, Some(val)) => val,
-                    (None, None) => return Err(miette::miette!("Variable must have a type or an initial value")),
+                    (None, None) => {
+                        return Err(miette::miette!(
+                            "Variable must have a type or an initial value"
+                        ));
+                    }
                 };
 
                 self.define_symbol(let_stmt.name.clone(), inferred_type, false)?;
@@ -226,7 +253,11 @@ impl TypeChecker {
                 let val_type = self.check_expression(&const_stmt.value)?;
                 let final_type = if let Some(anno) = &const_stmt.type_annotation {
                     if !self.is_assignable(&val_type, anno) {
-                        return Err(miette::miette!("Type mismatch: cannot assign {:?} to {:?}", val_type, anno));
+                        return Err(miette::miette!(
+                            "Type mismatch: cannot assign {:?} to {:?}",
+                            val_type,
+                            anno
+                        ));
                     }
                     self.check_type(anno)?;
                     anno.clone()
@@ -249,7 +280,11 @@ impl TypeChecker {
 
                 if let Some(expected) = &self.current_fn_return_type {
                     if !self.is_assignable(&ret_type, expected) {
-                        return Err(miette::miette!("Type mismatch: return type {:?} does not match expected {:?}", ret_type, expected));
+                        return Err(miette::miette!(
+                            "Type mismatch: return type {:?} does not match expected {:?}",
+                            ret_type,
+                            expected
+                        ));
                     }
                 }
                 Ok(())
@@ -258,7 +293,10 @@ impl TypeChecker {
             Statement::If(if_stmt) => {
                 let cond_type = self.check_expression(&if_stmt.condition)?;
                 if cond_type != Type::Bool {
-                    return Err(miette::miette!("'if' condition must be a boolean, but found {:?}", cond_type));
+                    return Err(miette::miette!(
+                        "'if' condition must be a boolean, but found {:?}",
+                        cond_type
+                    ));
                 }
                 self.check_block(&if_stmt.then_block)?;
                 if let Some(else_block) = &if_stmt.else_block {
@@ -269,7 +307,10 @@ impl TypeChecker {
             Statement::While(while_stmt) => {
                 let cond_type = self.check_expression(&while_stmt.condition)?;
                 if cond_type != Type::Bool {
-                    return Err(miette::miette!("'while' condition must be a boolean, but found {:?}", cond_type));
+                    return Err(miette::miette!(
+                        "'while' condition must be a boolean, but found {:?}",
+                        cond_type
+                    ));
                 }
                 self.check_block(&while_stmt.body)?;
                 Ok(())
@@ -300,38 +341,71 @@ impl TypeChecker {
         }
     }
 
+    #[allow(clippy::collapsible_if)]
     fn check_expression(&mut self, expr: &Expression) -> Result<Type> {
         match expr {
             Expression::Binary(binary_expr) => {
                 let left = self.check_expression(&binary_expr.left)?;
                 let right = self.check_expression(&binary_expr.right)?;
-                
+
                 match binary_expr.op {
-                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Mod => {
+                    BinaryOp::Add
+                    | BinaryOp::Sub
+                    | BinaryOp::Mul
+                    | BinaryOp::Div
+                    | BinaryOp::Mod => {
                         if !self.is_numeric(&left) || !self.is_numeric(&right) {
-                            return Err(miette::miette!("Arithmetic operator {:?} requires numeric types, but found {:?} and {:?}", binary_expr.op, left, right));
+                            return Err(miette::miette!(
+                                "Arithmetic operator {:?} requires numeric types, but found {:?} and {:?}",
+                                binary_expr.op,
+                                left,
+                                right
+                            ));
                         }
                         if left != right {
                             // TODO: Support implicit numeric promotion?
-                            return Err(miette::miette!("Type mismatch in arithmetic expression: {:?} and {:?}", left, right));
+                            return Err(miette::miette!(
+                                "Type mismatch in arithmetic expression: {:?} and {:?}",
+                                left,
+                                right
+                            ));
                         }
                         Ok(left)
                     }
                     BinaryOp::Equal | BinaryOp::NotEqual => {
-                        if !self.is_assignable(&left, &right) && !self.is_assignable(&right, &left) {
-                            return Err(miette::miette!("Comparison operator {:?} requires compatible types, but found {:?} and {:?}", binary_expr.op, left, right));
+                        if !self.is_assignable(&left, &right) && !self.is_assignable(&right, &left)
+                        {
+                            return Err(miette::miette!(
+                                "Comparison operator {:?} requires compatible types, but found {:?} and {:?}",
+                                binary_expr.op,
+                                left,
+                                right
+                            ));
                         }
                         Ok(Type::Bool)
                     }
-                    BinaryOp::Less | BinaryOp::LessEqual | BinaryOp::Greater | BinaryOp::GreaterEqual => {
+                    BinaryOp::Less
+                    | BinaryOp::LessEqual
+                    | BinaryOp::Greater
+                    | BinaryOp::GreaterEqual => {
                         if !self.is_numeric(&left) || !self.is_numeric(&right) {
-                            return Err(miette::miette!("Comparison operator {:?} requires numeric types, but found {:?} and {:?}", binary_expr.op, left, right));
+                            return Err(miette::miette!(
+                                "Comparison operator {:?} requires numeric types, but found {:?} and {:?}",
+                                binary_expr.op,
+                                left,
+                                right
+                            ));
                         }
                         Ok(Type::Bool)
                     }
                     BinaryOp::And | BinaryOp::Or => {
                         if left != Type::Bool || right != Type::Bool {
-                            return Err(miette::miette!("Logical operator {:?} requires boolean types, but found {:?} and {:?}", binary_expr.op, left, right));
+                            return Err(miette::miette!(
+                                "Logical operator {:?} requires boolean types, but found {:?} and {:?}",
+                                binary_expr.op,
+                                left,
+                                right
+                            ));
                         }
                         Ok(Type::Bool)
                     }
@@ -343,13 +417,19 @@ impl TypeChecker {
                 match unary_expr.op {
                     UnaryOp::Neg => {
                         if !self.is_numeric(&operand_type) {
-                            return Err(miette::miette!("Negation operator '-' requires a numeric type, but found {:?}", operand_type));
+                            return Err(miette::miette!(
+                                "Negation operator '-' requires a numeric type, but found {:?}",
+                                operand_type
+                            ));
                         }
                         Ok(operand_type)
                     }
                     UnaryOp::Not => {
                         if operand_type != Type::Bool {
-                            return Err(miette::miette!("Logical NOT operator '!' requires a boolean type, but found {:?}", operand_type));
+                            return Err(miette::miette!(
+                                "Logical NOT operator '!' requires a boolean type, but found {:?}",
+                                operand_type
+                            ));
                         }
                         Ok(Type::Bool)
                     }
@@ -367,8 +447,15 @@ impl TypeChecker {
                 if let Some(sym) = self.resolve_symbol(name) {
                     Ok(sym.type_.clone())
                 } else if let Some(fn_decl) = self.functions.get(name).cloned() {
-                    let params = fn_decl.params.iter().map(|p| p.type_annotation.clone()).collect();
-                    Ok(Type::Function(params, Box::new(fn_decl.return_type.clone())))
+                    let params = fn_decl
+                        .params
+                        .iter()
+                        .map(|p| p.type_annotation.clone())
+                        .collect();
+                    Ok(Type::Function(
+                        params,
+                        Box::new(fn_decl.return_type.clone()),
+                    ))
                 } else {
                     Err(miette::miette!("Undefined identifier: {}", name))
                 }
@@ -378,38 +465,67 @@ impl TypeChecker {
                 let obj_type = self.check_expression(&member_expr.object)?;
                 if let Type::Named(struct_name) = &obj_type {
                     if let Some(s) = self.structs.get(struct_name) {
-                        if let Some(field) = s.fields.iter().find(|f| f.name == member_expr.property) {
+                        if let Some(field) =
+                            s.fields.iter().find(|f| f.name == member_expr.property)
+                        {
                             return Ok(field.type_.clone());
                         }
                         // Check methods in struct
-                        if let Some(method) = s.methods.iter().find(|m| m.name == member_expr.property) {
-                            let params = method.params.iter().map(|p| p.type_annotation.clone()).collect();
-                            return Ok(Type::Function(params, Box::new(method.return_type.clone())));
+                        if let Some(method) =
+                            s.methods.iter().find(|m| m.name == member_expr.property)
+                        {
+                            let params = method
+                                .params
+                                .iter()
+                                .map(|p| p.type_annotation.clone())
+                                .collect();
+                            return Ok(Type::Function(
+                                params,
+                                Box::new(method.return_type.clone()),
+                            ));
                         }
                     }
                 }
-                
+
                 // Check top-level functions for method-like signature: fn foo(self: T, ...)
                 if let Some(fn_decl) = self.functions.get(&member_expr.property).cloned() {
                     if !fn_decl.params.is_empty() && fn_decl.params[0].name == "self" {
                         if self.is_assignable(&obj_type, &fn_decl.params[0].type_annotation) {
-                            let params = fn_decl.params.iter().map(|p| p.type_annotation.clone()).collect();
-                            return Ok(Type::Function(params, Box::new(fn_decl.return_type.clone())));
+                            let params = fn_decl
+                                .params
+                                .iter()
+                                .map(|p| p.type_annotation.clone())
+                                .collect();
+                            return Ok(Type::Function(
+                                params,
+                                Box::new(fn_decl.return_type.clone()),
+                            ));
                         }
                     }
                 }
 
                 if let Type::Named(struct_name) = &obj_type {
-                    return Err(miette::miette!("Struct '{}' has no member or method '{}'", struct_name, member_expr.property));
+                    return Err(miette::miette!(
+                        "Struct '{}' has no member or method '{}'",
+                        struct_name,
+                        member_expr.property
+                    ));
                 }
-                Err(miette::miette!("Type {:?} has no member '{}'", obj_type, member_expr.property))
+                Err(miette::miette!(
+                    "Type {:?} has no member '{}'",
+                    obj_type,
+                    member_expr.property
+                ))
             }
             Expression::Index(index_expr) => {
                 let obj_type = self.check_expression(&index_expr.object)?;
                 let idx_type = self.check_expression(&index_expr.index)?;
-                
+
                 if !self.is_integer(&idx_type) {
-                    return Err(miette::miette!("Array index must be an integer, but found {:?}", idx_type));
+                    return Err(miette::miette!(
+                        "Array index must be an integer, but found {:?}",
+                        idx_type
+                    ));
                 }
 
                 match obj_type {
@@ -421,7 +537,10 @@ impl TypeChecker {
             Expression::If(if_expr) => {
                 let cond_type = self.check_expression(&if_expr.condition)?;
                 if cond_type != Type::Bool {
-                    return Err(miette::miette!("'if' expression condition must be a boolean, but found {:?}", cond_type));
+                    return Err(miette::miette!(
+                        "'if' expression condition must be a boolean, but found {:?}",
+                        cond_type
+                    ));
                 }
                 let then_type = self.check_expression(&if_expr.then_expr)?;
                 if let Some(else_expr) = &if_expr.else_expr {
@@ -429,7 +548,8 @@ impl TypeChecker {
                     if then_type != else_type {
                         return Err(miette::miette!(
                             "'if' expression branches must have same type, but found {:?} and {:?}",
-                            then_type, else_type
+                            then_type,
+                            else_type
                         ));
                     }
                     Ok(then_type)
@@ -446,7 +566,10 @@ impl TypeChecker {
             }
             Expression::ErrorUnion(error_union_expr) => {
                 self.check_type(&error_union_expr.value_type)?;
-                Ok(Type::ErrorUnion(error_union_expr.error_name.clone(), error_union_expr.value_type.clone()))
+                Ok(Type::ErrorUnion(
+                    error_union_expr.error_name.clone(),
+                    error_union_expr.value_type.clone(),
+                ))
             }
             Expression::Array(array_expr) => {
                 let mut first_type = None;
@@ -470,7 +593,12 @@ impl TypeChecker {
                     let mut substitution = HashMap::new();
                     if let Some(args) = &struct_expr.type_args {
                         if args.len() != s.type_params.len() {
-                            return Err(miette::miette!("Struct '{}' expects {} type arguments, but {} were provided", struct_expr.name, s.type_params.len(), args.len()));
+                            return Err(miette::miette!(
+                                "Struct '{}' expects {} type arguments, but {} were provided",
+                                struct_expr.name,
+                                s.type_params.len(),
+                                args.len()
+                            ));
                         }
                         // Check generic constraints
                         self.check_constraints(&s.type_params, args)?;
@@ -479,26 +607,51 @@ impl TypeChecker {
                             substitution.insert(param.name.clone(), args[i].clone());
                         }
                     } else if !s.type_params.is_empty() {
-                         return Err(miette::miette!("Struct '{}' requires type arguments for instantiation", struct_expr.name));
+                        return Err(miette::miette!(
+                            "Struct '{}' requires type arguments for instantiation",
+                            struct_expr.name
+                        ));
                     }
 
                     for field_decl in &s.fields {
                         if !struct_expr.fields.iter().any(|f| f.name == field_decl.name) {
-                            return Err(miette::miette!("Missing field '{}' in initializer for struct '{}'", field_decl.name, struct_expr.name));
+                            return Err(miette::miette!(
+                                "Missing field '{}' in initializer for struct '{}'",
+                                field_decl.name,
+                                struct_expr.name
+                            ));
                         }
                     }
                     for field in &struct_expr.fields {
-                        let decl = s.fields.iter().find(|f| f.name == field.name)
-                            .ok_or_else(|| miette::miette!("No such field '{}' in struct '{}'", field.name, struct_expr.name))?;
+                        let decl =
+                            s.fields
+                                .iter()
+                                .find(|f| f.name == field.name)
+                                .ok_or_else(|| {
+                                    miette::miette!(
+                                        "No such field '{}' in struct '{}'",
+                                        field.name,
+                                        struct_expr.name
+                                    )
+                                })?;
                         let val_type = self.check_expression(&field.value)?;
                         let expected_type = self.substitute_type(&decl.type_, &substitution);
                         if !self.is_assignable(&val_type, &expected_type) {
-                            return Err(miette::miette!("Type mismatch for field '{}' in struct '{}': expected {:?}, found {:?}", field.name, struct_expr.name, expected_type, val_type));
+                            return Err(miette::miette!(
+                                "Type mismatch for field '{}' in struct '{}': expected {:?}, found {:?}",
+                                field.name,
+                                struct_expr.name,
+                                expected_type,
+                                val_type
+                            ));
                         }
                     }
 
                     if let Some(args) = &struct_expr.type_args {
-                        Ok(Type::Generic(Box::new(Type::Named(struct_expr.name.clone())), args.clone()))
+                        Ok(Type::Generic(
+                            Box::new(Type::Named(struct_expr.name.clone())),
+                            args.clone(),
+                        ))
                     } else {
                         Ok(Type::Named(struct_expr.name.clone()))
                     }
@@ -529,7 +682,9 @@ impl TypeChecker {
                 }
                 Ok(())
             }
-            Type::Array(inner) | Type::Pointer(inner) | Type::Optional(inner) => self.check_type(inner),
+            Type::Array(inner) | Type::Pointer(inner) | Type::Optional(inner) => {
+                self.check_type(inner)
+            }
             Type::Tuple(types) => {
                 for t in types {
                     self.check_type(t)?;
@@ -545,19 +700,26 @@ impl TypeChecker {
         Ok(())
     }
 
+    #[allow(clippy::collapsible_if)]
     fn check_call_expr(&mut self, call_expr: &CallExpr) -> Result<Type> {
         let callee = &*call_expr.callee;
-        
+
         // Special case: Method call p.method(args)
         if let Expression::Member(member_expr) = callee {
             let obj_type = self.check_expression(&member_expr.object)?;
             if let Type::Named(struct_name) = &obj_type {
                 if let Some(s) = self.structs.get(struct_name).cloned() {
-                    if let Some(method) = s.methods.iter().find(|m| m.name == member_expr.property) {
+                    if let Some(method) = s.methods.iter().find(|m| m.name == member_expr.property)
+                    {
                         let mut substitution = HashMap::new();
                         if let Some(args) = &call_expr.type_args {
                             if args.len() != method.type_params.len() {
-                                return Err(miette::miette!("Method '{}' expects {} type arguments, but {} were provided", method.name, method.type_params.len(), args.len()));
+                                return Err(miette::miette!(
+                                    "Method '{}' expects {} type arguments, but {} were provided",
+                                    method.name,
+                                    method.type_params.len(),
+                                    args.len()
+                                ));
                             }
                             // Check constraints
                             self.check_constraints(&method.type_params, args)?;
@@ -568,22 +730,44 @@ impl TypeChecker {
                         }
 
                         if method.params.is_empty() {
-                            return Err(miette::miette!("Method {} must have a self parameter", method.name));
+                            return Err(miette::miette!(
+                                "Method {} must have a self parameter",
+                                method.name
+                            ));
                         }
-                        let self_type = self.substitute_type(&method.params[0].type_annotation, &substitution);
+                        let self_type =
+                            self.substitute_type(&method.params[0].type_annotation, &substitution);
                         if !self.is_assignable(&obj_type, &self_type) {
-                            return Err(miette::miette!("Cannot call method {} on type {:?}", method.name, obj_type));
+                            return Err(miette::miette!(
+                                "Cannot call method {} on type {:?}",
+                                method.name,
+                                obj_type
+                            ));
                         }
-                        
+
                         if method.params.len() - 1 != call_expr.args.len() {
-                            return Err(miette::miette!("Method '{}' expects {} arguments, but {} were provided", method.name, method.params.len() - 1, call_expr.args.len()));
+                            return Err(miette::miette!(
+                                "Method '{}' expects {} arguments, but {} were provided",
+                                method.name,
+                                method.params.len() - 1,
+                                call_expr.args.len()
+                            ));
                         }
-                        
+
                         for (i, arg) in call_expr.args.iter().enumerate() {
                             let arg_type = self.check_expression(arg)?;
-                            let expected = self.substitute_type(&method.params[i + 1].type_annotation, &substitution);
+                            let expected = self.substitute_type(
+                                &method.params[i + 1].type_annotation,
+                                &substitution,
+                            );
                             if !self.is_assignable(&arg_type, &expected) {
-                                return Err(miette::miette!("Argument {} to method '{}' has type {:?}, but expected {:?}", i, method.name, arg_type, expected));
+                                return Err(miette::miette!(
+                                    "Argument {} to method '{}' has type {:?}, but expected {:?}",
+                                    i,
+                                    method.name,
+                                    arg_type,
+                                    expected
+                                ));
                             }
                         }
                         return Ok(self.substitute_type(&method.return_type, &substitution));
@@ -597,7 +781,12 @@ impl TypeChecker {
                             let mut substitution = HashMap::new();
                             if let Some(args) = &call_expr.type_args {
                                 if args.len() != fn_decl.type_params.len() {
-                                    return Err(miette::miette!("Method '{}' expects {} type arguments, but {} were provided", fn_decl.name, fn_decl.type_params.len(), args.len()));
+                                    return Err(miette::miette!(
+                                        "Method '{}' expects {} type arguments, but {} were provided",
+                                        fn_decl.name,
+                                        fn_decl.type_params.len(),
+                                        args.len()
+                                    ));
                                 }
                                 // Check constraints
                                 self.check_constraints(&fn_decl.type_params, args)?;
@@ -608,14 +797,28 @@ impl TypeChecker {
                             }
 
                             if fn_decl.params.len() - 1 != call_expr.args.len() {
-                                return Err(miette::miette!("Method '{}' expects {} arguments, but {} were provided", fn_decl.name, fn_decl.params.len() - 1, call_expr.args.len()));
+                                return Err(miette::miette!(
+                                    "Method '{}' expects {} arguments, but {} were provided",
+                                    fn_decl.name,
+                                    fn_decl.params.len() - 1,
+                                    call_expr.args.len()
+                                ));
                             }
-                            
+
                             for (i, arg) in call_expr.args.iter().enumerate() {
                                 let arg_type = self.check_expression(arg)?;
-                                let expected = self.substitute_type(&fn_decl.params[i + 1].type_annotation, &substitution);
+                                let expected = self.substitute_type(
+                                    &fn_decl.params[i + 1].type_annotation,
+                                    &substitution,
+                                );
                                 if !self.is_assignable(&arg_type, &expected) {
-                                    return Err(miette::miette!("Argument {} to method '{}' has type {:?}, but expected {:?}", i, fn_decl.name, arg_type, expected));
+                                    return Err(miette::miette!(
+                                        "Argument {} to method '{}' has type {:?}, but expected {:?}",
+                                        i,
+                                        fn_decl.name,
+                                        arg_type,
+                                        expected
+                                    ));
                                 }
                             }
                             return Ok(self.substitute_type(&fn_decl.return_type, &substitution));
@@ -626,15 +829,24 @@ impl TypeChecker {
         }
 
         let callee_type = self.check_expression(&call_expr.callee)?;
-        
+
         if let Type::Function(params, ret) = callee_type {
             if params.len() != call_expr.args.len() {
-                return Err(miette::miette!("Expected {} arguments, but found {}", params.len(), call_expr.args.len()));
+                return Err(miette::miette!(
+                    "Expected {} arguments, but found {}",
+                    params.len(),
+                    call_expr.args.len()
+                ));
             }
             for (i, arg) in call_expr.args.iter().enumerate() {
                 let arg_type = self.check_expression(arg)?;
                 if !self.is_assignable(&arg_type, &params[i]) {
-                    return Err(miette::miette!("Argument {} type mismatch: expected {:?}, found {:?}", i, params[i], arg_type));
+                    return Err(miette::miette!(
+                        "Argument {} type mismatch: expected {:?}, found {:?}",
+                        i,
+                        params[i],
+                        arg_type
+                    ));
                 }
             }
             return Ok(*ret);
@@ -646,7 +858,12 @@ impl TypeChecker {
                 let mut substitution = HashMap::new();
                 if let Some(args) = &call_expr.type_args {
                     if args.len() != fn_decl.type_params.len() {
-                        return Err(miette::miette!("Function '{}' expects {} type arguments, but {} were provided", name, fn_decl.type_params.len(), args.len()));
+                        return Err(miette::miette!(
+                            "Function '{}' expects {} type arguments, but {} were provided",
+                            name,
+                            fn_decl.type_params.len(),
+                            args.len()
+                        ));
                     }
                     // Check constraints
                     self.check_constraints(&fn_decl.type_params, args)?;
@@ -657,21 +874,36 @@ impl TypeChecker {
                 }
 
                 if fn_decl.params.len() != call_expr.args.len() {
-                    return Err(miette::miette!("Function '{}' expects {} arguments, but {} were provided", name, fn_decl.params.len(), call_expr.args.len()));
+                    return Err(miette::miette!(
+                        "Function '{}' expects {} arguments, but {} were provided",
+                        name,
+                        fn_decl.params.len(),
+                        call_expr.args.len()
+                    ));
                 }
                 for (i, arg) in call_expr.args.iter().enumerate() {
                     let arg_type = self.check_expression(arg)?;
-                    let expected = self.substitute_type(&fn_decl.params[i].type_annotation, &substitution);
+                    let expected =
+                        self.substitute_type(&fn_decl.params[i].type_annotation, &substitution);
                     if !self.is_assignable(&arg_type, &expected) {
-                        return Err(miette::miette!("Argument {} to function '{}' has type {:?}, but expected {:?}", i, name, arg_type, expected));
+                        return Err(miette::miette!(
+                            "Argument {} to function '{}' has type {:?}, but expected {:?}",
+                            i,
+                            name,
+                            arg_type,
+                            expected
+                        ));
                     }
                 }
                 let ret_type = self.substitute_type(&fn_decl.return_type, &substitution);
                 return Ok(ret_type);
             }
         }
-        
-        Err(miette::miette!("Cannot call non-function type {:?}", callee_type))
+
+        Err(miette::miette!(
+            "Cannot call non-function type {:?}",
+            callee_type
+        ))
     }
 
     fn is_assignable(&self, from: &Type, to: &Type) -> bool {
@@ -701,17 +933,40 @@ impl TypeChecker {
     }
 
     fn is_numeric(&self, type_: &Type) -> bool {
-        matches!(type_, 
-            Type::I8 | Type::I16 | Type::I32 | Type::I64 | Type::I128 | Type::Isize |
-            Type::U8 | Type::U16 | Type::U32 | Type::U64 | Type::U128 | Type::Usize |
-            Type::F32 | Type::F64
+        matches!(
+            type_,
+            Type::I8
+                | Type::I16
+                | Type::I32
+                | Type::I64
+                | Type::I128
+                | Type::Isize
+                | Type::U8
+                | Type::U16
+                | Type::U32
+                | Type::U64
+                | Type::U128
+                | Type::Usize
+                | Type::F32
+                | Type::F64
         )
     }
 
     fn is_integer(&self, type_: &Type) -> bool {
-        matches!(type_, 
-            Type::I8 | Type::I16 | Type::I32 | Type::I64 | Type::I128 | Type::Isize |
-            Type::U8 | Type::U16 | Type::U32 | Type::U64 | Type::U128 | Type::Usize
+        matches!(
+            type_,
+            Type::I8
+                | Type::I16
+                | Type::I32
+                | Type::I64
+                | Type::I128
+                | Type::Isize
+                | Type::U8
+                | Type::U16
+                | Type::U32
+                | Type::U64
+                | Type::U128
+                | Type::Usize
         )
     }
 
@@ -732,8 +987,12 @@ impl TypeChecker {
             Type::Pointer(inner) => Type::Pointer(Box::new(self.substitute_type(inner, sub))),
             Type::Array(inner) => Type::Array(Box::new(self.substitute_type(inner, sub))),
             Type::Optional(inner) => Type::Optional(Box::new(self.substitute_type(inner, sub))),
-            Type::ErrorUnion(err, val) => Type::ErrorUnion(err.clone(), Box::new(self.substitute_type(val, sub))),
-            Type::Tuple(ts) => Type::Tuple(ts.iter().map(|t| self.substitute_type(t, sub)).collect()),
+            Type::ErrorUnion(err, val) => {
+                Type::ErrorUnion(err.clone(), Box::new(self.substitute_type(val, sub)))
+            }
+            Type::Tuple(ts) => {
+                Type::Tuple(ts.iter().map(|t| self.substitute_type(t, sub)).collect())
+            }
             Type::Function(ps, rs) => {
                 let new_ps = ps.iter().map(|p| self.substitute_type(p, sub)).collect();
                 Type::Function(new_ps, Box::new(self.substitute_type(rs, sub)))
@@ -755,28 +1014,46 @@ impl TypeChecker {
     fn satisfies_interface(&self, type_: &Type, interface: &Type) -> Result<()> {
         match (type_, interface) {
             (Type::Named(type_name), Type::Named(interface_name)) => {
-                let iface = self.interfaces.get(interface_name).cloned()
+                let iface = self
+                    .interfaces
+                    .get(interface_name)
+                    .cloned()
                     .ok_or_else(|| miette::miette!("Undefined interface '{}'", interface_name))?;
-                
+
                 // If it's a struct, check its methods
                 if let Some(s) = self.structs.get(type_name).cloned() {
                     for iface_method in &iface.methods {
                         let struct_method = s.methods.iter().find(|m| m.name == iface_method.name)
                             .ok_or_else(|| miette::miette!("Type '{}' does not implement method '{}' required by interface '{}'", type_name, iface_method.name, interface_name))?;
-                        
+
                         // Check signature match
                         if struct_method.params.len() != iface_method.params.len() {
-                             return Err(miette::miette!("Method '{}' in type '{}' has {} parameters, but interface '{}' expects {}", iface_method.name, type_name, struct_method.params.len(), interface_name, iface_method.params.len()));
+                            return Err(miette::miette!(
+                                "Method '{}' in type '{}' has {} parameters, but interface '{}' expects {}",
+                                iface_method.name,
+                                type_name,
+                                struct_method.params.len(),
+                                interface_name,
+                                iface_method.params.len()
+                            ));
                         }
                         // Note: For now we don't check exact types as it might require self-substitution, but at least names/counts should match.
                         // Ideally we should check if is_assignable(struct_method_sig, iface_method_sig)
                     }
                     Ok(())
                 } else {
-                    Err(miette::miette!("Type '{:?}' is not a struct and cannot implement interface '{}'", type_, interface_name))
+                    Err(miette::miette!(
+                        "Type '{:?}' is not a struct and cannot implement interface '{}'",
+                        type_,
+                        interface_name
+                    ))
                 }
             }
-            _ => Err(miette::miette!("Interface constraints must be named interfaces, found {:?} : {:?}", type_, interface)),
+            _ => Err(miette::miette!(
+                "Interface constraints must be named interfaces, found {:?} : {:?}",
+                type_,
+                interface
+            )),
         }
     }
 }

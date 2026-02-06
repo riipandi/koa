@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Type Inference (2026-02-07)
+
+#### Type Checker
+- Local variable type inference from literals (i32, f64, string, bool)
+- Type inference from other variables
+- Type inference from function calls
+- Type inference from struct literals and generic structs
+- Type inference from complex expressions and arithmetic operations
+- Support for `let x = 42;` without explicit type annotation
+
+#### Testing
+- Added test_type_inference_int_literal - infers i32 from integer literal
+- Added test_type_inference_float_literal - infers f64 from float literal
+- Added test_type_inference_string_literal - infers string from string literal
+- Added test_type_inference_bool_literal - infers bool from boolean literal
+- Added test_type_inference_from_variable - infers type from other variable
+- Added test_type_inference_from_function_call - infers return type
+- Added test_type_inference_from_struct_literal - infers struct type
+- Added test_type_inference_generic_struct - infers generic struct type
+- Added test_type_inference_arithmetic - infers from arithmetic expressions
+- Added test_type_inference_complex_expression - infers from complex expressions
+- Added test_type_inference_with_reassignment - chains inference through variables
+- Added test_type_inference_array_literal - infers array type
+- Added test_type_inference_null - infers optional type with null
+- Added test_type_inference_void_value - infers void from void function
+- Added test_type_inference_mixed_types - multiple inferred types in same scope
+- Total test suite: 63 tests passing (up from 48)
+
+#### Example Usage
+```koa
+fn test(): i32 {
+    let x = 42;           // inferred: i32
+    let y = 3.14;         // inferred: f64
+    let z = x + 10;       // inferred: i32
+    let p = Point { x: 1, y: 2 };  // inferred: Point
+    return z;
+}
+```
+
 ### Added - LLVM Codegen Integration (2026-02-07)
 
 #### LLVM Code Generator
