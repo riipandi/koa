@@ -2,9 +2,11 @@
 
 use clap::{Parser as ClapParser, Subcommand};
 use console::style;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use indicatif_log_bridge::LogWrapper;
 use inquire::{Confirm, Select, Text};
 use koa::{ir::IrLowerer, Lexer, Parser as KoaParser, TypeChecker};
+use log::{debug, error, info, warn};
 use miette::{IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -180,6 +182,37 @@ struct PathDependency {
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    // Set up multi-progress for logging and progress bars
+    let multi = MultiProgress::new();
+    let logger = LogWrapper::new(
+        multi,
+        env_logger::Builder::new()
+            .filter_level(
+                std::env::var("KOA_LOG")
+                    .or_else(|_| std::env::var("RUST_LOG"))
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(log::LevelFilter::Warn),
+            )
+            .build(),
+    );
+
+    // Set the global logger
+    log::set_boxed_logger(Box::new(logger))
+        .map(|()| {
+            log::set_max_level(
+                std::env::var("KOA_LOG")
+                    .or_else(|_| std::env::var("RUST_LOG"))
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(log::LevelFilter::Warn),
+            )
+        })
+        .into_diagnostic()?;
+
+    info!("Koa CLI v0.1.0");
+    debug!("Command: {:?}", cli.command);
+
     match cli.command {
         Commands::Build {
             input,
@@ -220,6 +253,10 @@ fn main() -> Result<()> {
 
 /// Build command
 fn build(input: PathBuf, output: Option<PathBuf>, mode: String) -> Result<()> {
+    info!("Building '{}' in {} mode", input.display(), mode);
+    debug!("Input file: {:?}", input);
+    debug!("Output file: {:?}", output);
+
     let spinner = create_spinner(&format!(
         "Building {} in {} mode",
         style(input.display()).cyan(),
@@ -229,12 +266,17 @@ fn build(input: PathBuf, output: Option<PathBuf>, mode: String) -> Result<()> {
     // Read source
     spinner.set_message("Reading source...");
     let source = fs::read_to_string(&input).into_diagnostic()?;
+    info!("Source read: {} bytes", source.len());
+    debug!("Source content length: {}", source.len());
     spinner.finish_with_message(format!("Source read: {} bytes", style(source.len()).cyan()));
 
     // Lex
     let lex_spinner = create_spinner("Lexing...");
+    debug!("Starting lexical analysis");
     let mut lexer = Lexer::new(&source);
     let tokens = lexer.tokenize()?;
+    info!("Lexical analysis complete: {} tokens", tokens.len());
+    debug!("Token count: {}", tokens.len());
     lex_spinner.finish_with_message(format!(
         "Tokens: {}",
         style(tokens.len()).cyan().to_string()
@@ -242,8 +284,11 @@ fn build(input: PathBuf, output: Option<PathBuf>, mode: String) -> Result<()> {
 
     // Parse
     let parse_spinner = create_spinner("Parsing...");
+    debug!("Starting parsing");
     let mut parser = KoaParser::new(tokens);
     let ast = parser.parse()?;
+    info!("Parsing complete: {} declarations", ast.declarations.len());
+    debug!("Declarations: {}", ast.declarations.len());
     parse_spinner.finish_with_message(format!(
         "Declarations: {}",
         style(ast.declarations.len()).cyan().to_string()
@@ -251,14 +296,22 @@ fn build(input: PathBuf, output: Option<PathBuf>, mode: String) -> Result<()> {
 
     // Type check
     let typeck_spinner = create_spinner("Type checking...");
+    debug!("Starting type checking");
     let mut typeck = TypeChecker::new();
     typeck.check(&ast)?;
+    info!("Type checking passed");
     typeck_spinner.finish_with_message(style("Type check passed").green().to_string());
 
     // Lower to IR
     let lower_spinner = create_spinner("Lowering to IR...");
+    debug!("Starting IR lowering");
     let mut lowerer = IrLowerer::new();
     let ir_program = lowerer.lower(&ast)?;
+    info!(
+        "IR lowering complete: {} functions",
+        ir_program.functions.len()
+    );
+    debug!("IR functions: {:?}", ir_program.functions);
     lower_spinner.finish_with_message(format!(
         "IR functions: {}",
         style(ir_program.functions.len()).cyan().to_string()
@@ -267,6 +320,11 @@ fn build(input: PathBuf, output: Option<PathBuf>, mode: String) -> Result<()> {
     // Debug: Print IR
     if ir_program.functions.len() > 0 {
         let func = &ir_program.functions[0];
+        debug!(
+            "Function: {} with {} instructions",
+            func.name,
+            func.body.instructions.len()
+        );
         println!("  Function: {}", style(&func.name).cyan());
         println!(
             "  Instructions: {}",
@@ -279,7 +337,9 @@ fn build(input: PathBuf, output: Option<PathBuf>, mode: String) -> Result<()> {
 
     // Generate LLVM IR
     let llvm_spinner = create_spinner("Generating LLVM IR...");
+    debug!("Starting LLVM IR generation");
     let llvm_ir = koa::llvm_gen::compile_to_llvm(&ir_program)?;
+    info!("LLVM IR generated: {} bytes", llvm_ir.len());
 
     // Determine output path
     let out_path = output.unwrap_or_else(|| {
@@ -291,6 +351,7 @@ fn build(input: PathBuf, output: Option<PathBuf>, mode: String) -> Result<()> {
     // Write LLVM IR to .ll file
     let ll_path = out_path.with_extension("ll");
     fs::write(&ll_path, llvm_ir).into_diagnostic()?;
+    info!("LLVM IR written to: {}", ll_path.display());
     llvm_spinner.finish_with_message(format!(
         "LLVM IR written to: {}",
         style(ll_path.display()).cyan().to_string()
@@ -304,18 +365,22 @@ fn build(input: PathBuf, output: Option<PathBuf>, mode: String) -> Result<()> {
 
 /// Run command
 fn run(input: PathBuf) -> Result<()> {
+    info!("Running {}", input.display());
     println!("Running {}", style(input.display()).cyan());
 
     // Build then execute
+    debug!("Building before running");
     build(input.clone(), None, "debug".to_string())?;
 
     let mut exe = input.clone();
     exe.set_extension("");
+    debug!("Executing: {:?}", exe);
 
-    std::process::Command::new(&exe)
+    let status = std::process::Command::new(&exe)
         .status()
         .into_diagnostic()?;
 
+    info!("Execution exited with: {:?}", status);
     Ok(())
 }
 
@@ -328,8 +393,15 @@ fn init(
     no_gitignore: bool,
     no_readme: bool,
 ) -> Result<()> {
+    info!("Initializing new Koa project");
+    debug!(
+        "Parameters: name={:?}, interactive={}, lib={}, git={}, no_gitignore={}, no_readme={}",
+        name, interactive, lib, git, no_gitignore, no_readme
+    );
+
     // Interactive mode
     let (name, lib, git, no_gitignore, no_readme) = if interactive {
+        info!("Starting interactive mode");
         let project_name = if let Some(n) = &name {
             n.clone()
         } else {
@@ -358,6 +430,11 @@ fn init(
             .prompt()
             .into_diagnostic()?;
 
+        debug!(
+            "Interactive selections: name={}, type={}, git={}, gitignore={}, readme={}",
+            project_name, project_type, init_git, create_gitignore, create_readme
+        );
+
         (
             Some(project_name),
             project_type == "Library",
@@ -380,6 +457,8 @@ fn init(
             .unwrap_or("koa-project")
             .to_string();
 
+        debug!("Current directory name: {}", dir_name);
+
         // Check if directory is empty (only hidden files allowed)
         let is_empty = current_dir
             .read_dir()
@@ -391,6 +470,7 @@ fn init(
             });
 
         if !is_empty {
+            error!("Current directory is not empty");
             miette::bail!(
                 "Current directory is not empty. Specify a project name or run in an empty directory."
             );
@@ -399,15 +479,23 @@ fn init(
         dir_name
     };
 
+    info!("Project name: {}", project_name);
+    info!(
+        "Project type: {}",
+        if lib { "library" } else { "executable" }
+    );
+
     // Create project directory if name was provided
     let project_dir = if name.is_some() {
         let dir = PathBuf::from(&project_name);
         if dir.exists() {
+            error!("Directory '{}' already exists", project_name);
             miette::bail!("Directory '{}' already exists", project_name);
         }
 
         let spinner = create_spinner(&format!("Creating {}...", style(&project_name).cyan()));
         fs::create_dir_all(&dir).into_diagnostic()?;
+        info!("Created directory: {}", project_name);
         spinner.finish_with_message(
             style(format!("Created {}", project_name))
                 .green()
@@ -641,10 +729,12 @@ MIT
 
 /// Package: Fetch dependencies
 fn pkg_fetch() -> Result<()> {
+    info!("Fetching dependencies");
     let spinner = create_spinner("Fetching dependencies...");
 
     // Check if Koa.toml exists
     if !PathBuf::from("Koa.toml").exists() {
+        error!("Koa.toml not found");
         spinner.finish_with_message(style("Error: Koa.toml not found").red().to_string());
         miette::bail!("Koa.toml not found. Are you in a Koa project?");
     }
@@ -653,6 +743,7 @@ fn pkg_fetch() -> Result<()> {
     // TODO: Download dependencies
     // TODO: Generate Koa.lock
 
+    info!("Dependencies fetched successfully");
     spinner.finish_with_message(style("Dependencies fetched").green().to_string());
 
     Ok(())
@@ -660,6 +751,12 @@ fn pkg_fetch() -> Result<()> {
 
 /// Package: Update dependencies
 fn pkg_update(package: Option<String>) -> Result<()> {
+    if let Some(pkg) = &package {
+        info!("Updating dependency: {}", pkg);
+    } else {
+        info!("Updating all dependencies");
+    }
+
     let spinner = create_spinner(if let Some(pkg) = &package {
         format!("Updating {}...", style(pkg).cyan().to_string())
     } else {
@@ -669,6 +766,7 @@ fn pkg_update(package: Option<String>) -> Result<()> {
     // TODO: Update dependencies
     // TODO: Update Koa.lock
 
+    info!("Dependencies updated successfully");
     spinner.finish_with_message(style("Dependencies updated").green().to_string());
 
     Ok(())
@@ -682,11 +780,18 @@ fn pkg_add(
     branch: Option<String>,
     path: Option<String>,
 ) -> Result<()> {
+    info!("Adding dependency: {}", package);
+    debug!(
+        "Git: {:?}, Version: {:?}, Branch: {:?}, Path: {:?}",
+        git, version, branch, path
+    );
+
     let spinner = create_spinner(format!("Adding {}...", style(&package).cyan().to_string()));
 
     // Check if Koa.toml exists
     let toml_path = PathBuf::from("Koa.toml");
     if !toml_path.exists() {
+        error!("Koa.toml not found");
         spinner.finish_with_message(style("Error: Koa.toml not found").red().to_string());
         miette::bail!("Koa.toml not found. Are you in a Koa project?");
     }
@@ -700,15 +805,19 @@ fn pkg_add(
         (package, None)
     };
 
+    debug!("Package name: {}, version: {:?}", pkg_name, pkg_version);
+
     // Read existing Koa.toml
     let content = fs::read_to_string(&toml_path).into_diagnostic()?;
     let mut koa_toml: KoaToml = toml::from_str(&content).into_diagnostic()?;
 
     // Determine dependency spec
     let dep = if let Some(local_path) = path {
+        debug!("Using path dependency: {}", local_path);
         Dependency::Path(PathDependency { path: local_path })
     } else if let Some(git_url) = git {
-        let mut git_dep = GitDependency {
+        debug!("Using git dependency: {}", git_url);
+        let git_dep = GitDependency {
             git: git_url,
             version: version.or(pkg_version),
             branch,
@@ -717,6 +826,7 @@ fn pkg_add(
         Dependency::Git(git_dep)
     } else {
         // TODO: Search for package in virtual registry
+        error!("Must specify --git or --path");
         spinner.finish_with_message(
             style("Error: Must specify --git or --path")
                 .red()
@@ -726,11 +836,13 @@ fn pkg_add(
     };
 
     // Add dependency
-    koa_toml.dependencies.insert(pkg_name.clone(), dep);
+    koa_toml.dependencies.insert(pkg_name.clone(), dep.clone());
+    debug!("Added dependency: {:?}", dep);
 
     // Write back to Koa.toml
     let new_content = toml::to_string_pretty(&koa_toml).into_diagnostic()?;
     fs::write(&toml_path, new_content).into_diagnostic()?;
+    info!("Dependency '{}' added to Koa.toml", pkg_name);
 
     spinner.finish_with_message(format!(
         "{} added to {}",
@@ -749,6 +861,8 @@ fn pkg_add(
 
 /// Package: Remove dependency
 fn pkg_remove(package: String) -> Result<()> {
+    info!("Removing dependency: {}", package);
+
     let spinner = create_spinner(format!(
         "Removing {}...",
         style(&package).cyan().to_string()
@@ -756,6 +870,7 @@ fn pkg_remove(package: String) -> Result<()> {
 
     let toml_path = PathBuf::from("Koa.toml");
     if !toml_path.exists() {
+        error!("Koa.toml not found");
         spinner.finish_with_message(style("Error: Koa.toml not found").red().to_string());
         miette::bail!("Koa.toml not found. Are you in a Koa project?");
     }
@@ -766,6 +881,7 @@ fn pkg_remove(package: String) -> Result<()> {
 
     // Check if dependency exists
     if !koa_toml.dependencies.contains_key(&package) {
+        warn!("Dependency '{}' not found", package);
         spinner.finish_with_message(format!(
             "Dependency {} not found",
             style(&package).yellow().to_string()
@@ -775,10 +891,12 @@ fn pkg_remove(package: String) -> Result<()> {
 
     // Remove dependency
     koa_toml.dependencies.remove(&package);
+    debug!("Removed dependency: {}", package);
 
     // Write back to Koa.toml
     let new_content = toml::to_string_pretty(&koa_toml).into_diagnostic()?;
     fs::write(&toml_path, new_content).into_diagnostic()?;
+    info!("Dependency '{}' removed from Koa.toml", package);
 
     spinner.finish_with_message(format!(
         "{} removed from {}",
