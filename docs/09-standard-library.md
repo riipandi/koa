@@ -11,13 +11,20 @@ The Koa standard library ("std") provides common types, functions, and modules f
 
 ---
 
+## Physical Location
+
+**Source:** `library/std/` - Standard library source code
+
+**Import path:** `std/*` - Import using `std/` prefix
+
+---
+
 ## Module Structure
 
 ```
-std/
+library/std/
 ├── io/
-│   ├── mod.koa           # I/O operations
-│   └── file.koa          # File I/O
+│   └── io.koa           # I/O operations
 ├── collections/
 │   ├── vec.koa           # Dynamic array
 │   ├── hashmap.koa       # Hash map
@@ -36,6 +43,15 @@ std/
 │   └── mod.koa           # Time operations
 └── math/
     └── mod.koa           # Math functions
+```
+
+**Import Examples:**
+```typescript
+// Physical file: library/std/io/io.koa
+import { println } from "std/io"
+
+// Physical file: library/std/collections/vec.koa
+import { Vec } from "std/collections/vec"
 ```
 
 ---

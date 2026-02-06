@@ -2,7 +2,7 @@
 //!
 //! The AST represents the structure of Koa source code after parsing.
 
-use crate::lexer::{Span, TokenKind};
+use crate::lexer::Span;
 
 /// The complete AST
 #[derive(Debug, Clone)]
