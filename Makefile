@@ -72,7 +72,7 @@ docs:
 
 # Development/Example shortcuts
 example: build-cli
-	cargo run -p koa-cli -- build examples/hello_world.koa
+	cargo run -p koa-cli -- build examples/simple/hello.koa -o examples/build/hello
 
 # Show help
 help:

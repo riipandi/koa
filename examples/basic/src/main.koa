@@ -1,6 +1,47 @@
-import from "std/io";
+fn add(x: i32, y: i32): i32 {
+    return x + y;
+}
+
+fn mul(x: i32, y: i32): i32 {
+    return x * y;
+}
+
+fn factorial(n: i32): i32 {
+    if n <= 1 {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+fn fibonacci(n: i32): i32 {
+    if n <= 1 {
+        return n;
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
 
 fn main(): i32 {
-    io.println("Hello, World!");
+    puts("========================================");
+    puts("Koa Language Demo");
+    puts("========================================");
+    puts("");
+
+    puts("--- Arithmetic ---");
+    let a: i32 = 10;
+    let b: i32 = 5;
+    printf("%d + %d = %d\n", a, b, add(a, b));
+    printf("%d * %d = %d\n", a, b, mul(a, b));
+    puts("");
+
+    puts("--- Functions ---");
+    printf("factorial(5) = %d\n", factorial(5));
+    printf("fibonacci(10) = %d\n", fibonacci(10));
+    puts("");
+
+    puts("========================================");
+    puts("Demo Complete!");
+    puts("========================================");
+    puts("");
+
     return 0;
 }

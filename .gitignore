@@ -46,4 +46,5 @@ compose.env*
 /examples/basic/build
 /examples/simple/*
 !examples/simple/*.koa
+/examples/*.ll
 Koa.lock
