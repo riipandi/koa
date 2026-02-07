@@ -1,0 +1,7 @@
+import { println, print } from "std/io";
+
+fn main(): i32 {
+    println("Hello, World!");
+    print("Testing print...");
+    return 0;
+}

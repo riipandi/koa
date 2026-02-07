@@ -1,0 +1,11 @@
+[package]
+name = "basic"
+version = "0.1.0"
+type = "executable"
+authors = ["Koa Authors"]
+description = "Basic Koa project example"
+license = "MIT"
+
+[build]
+target = "aarch64-apple-unix"
+mode = "debug"
