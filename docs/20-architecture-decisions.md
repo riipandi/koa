@@ -99,7 +99,7 @@ Module imports must be absolute. No relative paths allowed.
 **Consequences:**
 ```
 // ✅ CORRECT
-import { serve } from "std/net/http";
+import { serve } from "net/http";
 import { utils } from "myapp_utils";
 
 // ❌ ERROR

@@ -455,7 +455,7 @@ src/driver/
 
 ```
 import { PostgresPool } from "driver/postgres"
-import { http_get, http_post } from "std/net/http"
+import { http_get, http_post } from "net/http"
 
 async fn main(): !void {
     let pool: PostgresPool = try PostgresPool::new(

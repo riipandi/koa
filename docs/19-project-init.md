@@ -39,12 +39,12 @@ myapp/
 
 ### Available Templates
 
-| Template | Description | Use Case |
-|----------|-------------|----------|
-| `default` | Basic executable | CLI tools, utilities |
-| `lib` | Library project | Reusable libraries |
-| `web-app` | Web server | HTTP servers, APIs |
-| `cli-app` | CLI tool | Command-line applications |
+| Template  | Description      | Use Case                  |
+|-----------|------------------|---------------------------|
+| `default` | Basic executable | CLI tools, utilities      |
+| `lib`     | Library project  | Reusable libraries        |
+| `web-app` | Web server       | HTTP servers, APIs        |
+| `cli-app` | CLI tool         | Command-line applications |
 
 ### Default Template
 
@@ -125,7 +125,7 @@ http = { git = "https://github.com/riipandi/koa-http", version = "0.1.0" }
 
 ```
 // src/main.koa
-import { serve, Router } from "std/net/http";
+import { serve, Router } from "net/http";
 
 fn main(): i32 {
     let router: Router = Router::new();
@@ -312,12 +312,12 @@ koa init --template my-template myapp
 
 Templates support variables:
 
-| Variable | Description |
-|----------|-------------|
-| `{{ name }}` | Project name |
+| Variable        | Description     |
+|-----------------|-----------------|
+| `{{ name }}`    | Project name    |
 | `{{ version }}` | Project version |
-| `{{ author }}` | Author name |
-| `{{ year }}` | Current year |
+| `{{ author }}`  | Author name     |
+| `{{ year }}`    | Current year    |
 
 **Example:**
 

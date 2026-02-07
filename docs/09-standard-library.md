@@ -130,7 +130,7 @@ fn main(): i32 {
 HTTP client:
 
 ```
-import { http_get, http_post } from "std/net/http"
+import { http_get, http_post } from "net/http"
 
 async fn fetch_example(): !string {
     let response: HttpResponse = await http_get("https://example.com")
@@ -385,7 +385,7 @@ Phase 6+ additions:
 |-----------------|------------------|----------------|----------------|
 | **Collections** | ✅ Vec, HashMap   | ✅ slice, map   | ✅ Vec, HashMap |
 | **I/O**         | ✅ std::io        | ✅ io package   | ✅ std::io      |
-| **Net**         | ✅ std::net       | ✅ net/http     | ✅ std::net     |
+| **Net**         | ✅ std::net       | ✅ net/http     | ✅ net::http    |
 | **Async**       | Tokio (external) | goroutines     | ✅ Built-in     |
 | **Time**        | ✅ std::time      | ✅ time package | ✅ std::time    |
 | **Crypto**      | External         | ✅ crypto       | Planned        |

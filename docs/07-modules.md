@@ -157,7 +157,7 @@ import { Vec } from "std/collections/vec"
 import { operations } from "math/operations"
 
 // External dependencies (from Koa.lock)
-import { serve } from "std/net/http"
+import { serve } from "net/http"
 import { parse_json } from "koa_json"
 ```
 
@@ -233,7 +233,7 @@ import { println } from "std/io"
 import { Vec, HashMap } from "std/collections"
 
 // External dependencies
-import { http_get } from "std/net/http"         // Stdlib HTTP
+import { http_get } from "net/http"             // Stdlib HTTP
 import { parse_json } from "koa_json"           // External package
 
 // Local modules
@@ -323,7 +323,7 @@ fn main(): i32 {
 ```
 // src/main.koa
 import { Vec as Vector } from "std/collections/vec"
-import { fetch as http_get } from "std/net/http"
+import { fetch as http_get } from "net/http"
 
 fn main(): i32 {
     let v: Vector<i32> = Vector::new()
@@ -340,7 +340,7 @@ fn main(): i32 {
 
 ```
 // GOOD
-import { http_get } from "std/net/http"
+import { http_get } from "net/http"
 
 // AVOID
 import { get } from "std/http"
