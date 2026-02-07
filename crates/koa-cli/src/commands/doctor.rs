@@ -11,14 +11,8 @@ pub fn check() -> Result<()> {
 
     // System Information
     println!("{}", "System Information:".bold());
-    println!("{:<20} {}", "OS:", env::consts::OS);
+    println!("{:<20} {}", "Operating System:", env::consts::OS);
     println!("{:<20} {}", "Architecture:", env::consts::ARCH);
-    if let Ok(rust_v) = get_version("rustc") {
-        println!("{:<20} {}", "Rust Version:", rust_v);
-    }
-    if let Ok(cargo_v) = get_version("cargo") {
-        println!("{:<20} {}", "Cargo Version:", cargo_v);
-    }
     println!();
 
     // Toolchain Check

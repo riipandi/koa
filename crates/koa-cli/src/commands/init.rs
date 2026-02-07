@@ -11,7 +11,7 @@ const KOA_TOML_TEMPLATE: &str = "[package]\nname = \"{name}\"\nversion = \"0.1.0
 const MAIN_KOA_TEMPLATE: &str =
     "fn main(): i32 {\n    println(\"Hello, World!\");\n    return 0;\n}\n";
 
-const GITIGNORE_CONTENT: &str = ".DS_Store\n.DS_Store?\nThumbs.db\nehthumbs.db\nDesktop.ini\n$RECYCLE.BIN/\n*.sqlite*\n*.sqlite3*\n*.db\n.cache/\n.temp/\n/build/\n/temp\n";
+const GITIGNORE_CONTENT: &str = ".DS_Store\n.DS_Store?\nThumbs.db\nehthumbs.db\nDesktop.ini\n$RECYCLE.BIN/\n*.sqlite*\n*.sqlite3*\n*.db\n.cache/\n.temp/\n/build/\n/temp/\n";
 
 pub fn execute(dir: Option<&str>) -> Result<()> {
     let current_dir = std::env::current_dir()?;
