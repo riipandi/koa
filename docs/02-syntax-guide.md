@@ -50,18 +50,18 @@ Koa uses `const` for immutable and `let` for mutable (like TypeScript's const/le
 
 ```
 // Immutable (default, recommended)
-const name: string = "Koa"
-const pi: f64 = 3.14159
-const numbers: [i32; 3] = [1, 2, 3]
+const name: string = "Koa";
+const pi: f64 = 3.14159;
+const numbers: [i32; 3] = [1, 2, 3];
 
 // Mutable (only when needed to change)
-let counter: i32 = 0
-counter += 1
+let counter: i32 = 0;
+counter += 1;
 
 // Variables MUST be initialized
-const x: i32 = 42        // OK
-let y: f64 = 3.14        // OK
-let z: i32               // ERROR: must be initialized
+const x: i32 = 42;        // OK
+let y: f64 = 3.14;        // OK
+let z: i32;               // ERROR: must be initialized
 ```
 
 ### Variable Naming
@@ -71,15 +71,15 @@ let z: i32               // ERROR: must be initialized
 - No shadowing variables allowed
 
 ```
-const user_name: string = "Alice"   // OK
-const UserName: string = "Bob"      // AVOID (use for types)
+const user_name: string = "Alice";   // OK
+const UserName: string = "Bob";      // AVOID (use for types)
 fn calculate_sum(): i32 { }          // OK
 
 // Shadowing ERROR
 fn example(): void {
-    const x: i32 = 42
+    const x: i32 = 42;
     if condition {
-        const x: string = "error"   // ERROR: no shadowing
+        const x: string = "error";   // ERROR: no shadowing
     }
 }
 ```
@@ -92,35 +92,35 @@ fn example(): void {
 
 ```
 // Signed integers
-const a: i8 = 127
-const b: i16 = 32767
-const c: i32 = 2147483647
-const d: i64 = 9223372036854775807
+const a: i8 = 127;
+const b: i16 = 32767;
+const c: i32 = 2147483647;
+const d: i64 = 9223372036854775807;
 
 // Unsigned integers
-const e: u8 = 255
-const f: u16 = 65535
-const g: u32 = 4294967295
-const h: u64 = 18446744073709551615
+const e: u8 = 255;
+const f: u16 = 65535;
+const g: u32 = 4294967295;
+const h: u64 = 18446744073709551615;
 
 // Pointer-sized
-const i: isize = 42
-const j: usize = 100
+const i: isize = 42;
+const j: usize = 100;
 ```
 
 ### Floats
 
 ```
-const x: f32 = 3.14
-const y: f64 = 3.14159265359
+const x: f32 = 3.14;
+const y: f64 = 3.14159265359;
 ```
 
 ### Other Primitives
 
 ```
-const b: bool = true
-const s: string = "Hello"
-const empty: void = ()
+const b: bool = true;
+const s: string = "Hello";
+const empty: void = ();
 ```
 
 ---
@@ -150,7 +150,7 @@ pub struct Point {
     pub fn distance(self, other: Point): f64 {
         let dx: f64 = self.x - other.x
         let dy: f64 = self.y - other.y
-        (dx * dx + dy * dy).sqrt()
+        (dx * dx + dy * dy).sqrt();
     }
 
     // Static method
@@ -173,8 +173,8 @@ let p2: Point = Point {
 }
 
 // Field access
-println!("{}", p2.x)
-println!("{}", p2.y)
+println!("{}", p2.x);
+println!("{}", p2.y);
 ```
 
 ### Generic Structs
@@ -242,14 +242,14 @@ async fn fetch_data(url: string): !Data {
 
 ```
 fn identity<T>(x: T): T {
-    x
+    return x;
 }
 
 fn first<T>(arr: []T): T | null {
     if arr.len == 0 {
-        return null
+        return null;
     }
-    arr[0]
+    return arr[0];
 }
 ```
 
@@ -257,7 +257,7 @@ fn first<T>(arr: []T): T | null {
 
 ```
 // Regular call
-let result: i32 = add(10, 20)
+let result: i32 = add(10, 20);
 
 // Async call
 let data: Data = await fetch_data(url)
@@ -398,8 +398,8 @@ fn read_file(path: string): FileError!string {
 
 ```
 fn process(): !void {
-    let data: string = try read_file("data.txt")
-    println!("{}", data)
+    let data: string = try read_file("data.txt");
+    println!("{}", data);
 }
 ```
 
@@ -410,12 +410,12 @@ fn main(): i32 {
     match process() {
         Ok(()) => 0,
         Err(error.NotFound) => {
-            println!("File not found")
-            1
+            println!("File not found");
+            1;
         },
         Err(err) => {
-            println!("Error: {}", err)
-            2
+            println!("Error: {}", err);
+            2;
         },
     }
 }
@@ -429,11 +429,11 @@ fn main(): i32 {
 
 ```
 fn identity<T>(x: T): T {
-    x
+    return x;
 }
 
 fn pair<T, U>(x: T, y: U): (T, U) {
-    (x, y)
+    return (x, y);
 }
 ```
 
@@ -467,27 +467,7 @@ Conditional compilation annotations:
 ```
 [@debug]
 fn log_debug(msg: string): void {
-    println!("DEBUG: {}", msg)
-}
-
-[@not_debug]
-fn log_debug(msg: string): void {
-    // No-op in release
-}
-
-[@release]
-fn optimized(): void {
-    // Release-only code
-}
-
-[@os_linux]
-fn linux_only(): void {
-    // Linux specific
-}
-
-[@feature_sqlite]
-fn with_sqlite(): void {
-    // If --feature sqlite
+    println!("DEBUG: {}", msg);
 }
 ```
 
@@ -552,7 +532,8 @@ fn helper(): void {
 ## Complete Example
 
 ```
-import { println, Vec } from "std/io";
+import from "std/io/println";
+import from "std/math/sqrt";
 
 ///
 /// Represents a 2D point
@@ -574,7 +555,7 @@ pub struct Point {
     pub fn distance(self, other: Point): f64 {
         let dx: f64 = self.x - other.x;
         let dy: f64 = self.y - other.y;
-        return (dx * dx + dy * dy).sqrt();
+        return sqrt(dx * dx + dy * dy);
     }
 }
 
@@ -584,8 +565,96 @@ fn main(): i32 {
 
     let dist: f64 = p1.distance(p2);
 
-    println!("Distance: {}", dist);
+    println("Distance: {}", dist);
 
     return 0;
 }
+```
+
+---
+
+## The main() Function
+
+Koa supports two signatures for the `main()` entry point:
+
+### 1. Simple Programs (void return)
+
+For simple scripts and beginners:
+
+```
+fn main(): void {
+    println!("Hello, World!");
+    // Automatically returns 0 to the operating system
+}
+```
+
+**Use `void` when:**
+- You don't need to signal specific error codes
+- Simple scripts and examples
+- Learning the language
+
+**Behavior:** Always exits with code `0` (success)
+
+### 2. Programs with Error Handling (i32 return)
+
+For proper applications with error signaling:
+
+```
+fn main(): i32 {
+    if args.len < 2 {
+        eprintln!("Usage: {} <name>", args[0]);
+        return 1;  // Return non-zero for errors
+    }
+    
+    let name: string = args[1];
+    println!("Hello, {}!", name);
+    return 0;  // Return 0 for success
+}
+```
+
+**Use `i32` when:**
+- You need to signal different error types
+- CLI tools that need proper exit codes
+- Integration with shell scripts/CI/CD
+- Production applications
+
+**Exit Code Conventions:**
+- `0` - Success
+- `1` - General error
+- `2` - Usage error (invalid arguments)
+- `127` - Command not found
+
+### Examples
+
+**Success:**
+```
+fn main(): void {
+    println!("Success!");
+}
+```
+
+**Error Handling:**
+```
+fn main(): i32 {
+    match load_config() {
+        Ok(config) => {
+            run_app(config);
+            return 0;  // Success
+        },
+        Err(err) => {
+            eprintln!("Error: {}", err);
+            return 1;  // Error
+        },
+    }
+}
+```
+
+**Using Try Operator:**
+```
+fn main(): i32 {
+    let config: Config = try load_config();
+    run_app(config);
+    return 0;
+}
+```
 ```

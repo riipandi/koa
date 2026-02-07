@@ -48,10 +48,10 @@ library/std/
 **Import Examples:**
 ```
 // Physical file: library/std/io/io.koa
-import { println } from "std/io"
+import from "std/io"
 
 // Physical file: library/std/collections/vec.koa
-import { Vec } from "std/collections/vec"
+import from "std/collections/vec"
 ```
 
 ---
@@ -63,18 +63,19 @@ import { Vec } from "std/collections/vec"
 Input/output operations:
 
 ```
-import { print, println, File } from "std/io/mod"
+import from "std/io"
+import from "std/io/println"  // Frequently used
 
 // Print functions
 fn main(): i32 {
-    println!("Hello, World!")
-    print!("Number: {}", 42)
-    0
+    println!("Hello, World!")  // Direct - specific import
+    io.print!("Number: {}", 42)  // Prefixed - module import
+    return 0;
 }
 
 // File I/O
 async fn read_file(path: string): !string {
-    let file: File = try File::open(path)
+    let file: io.File = try io.File::open(path)
     defer file.close()
     file.read_to_string()
 }
@@ -87,7 +88,8 @@ async fn read_file(path: string): !string {
 Dynamic array:
 
 ```
-import { Vec } from "std/collections/vec"
+import from "std/collections/vec"
+import from "std/io/println"
 
 fn main(): i32 {
     let numbers: Vec<i32> = Vec::new()
@@ -100,7 +102,7 @@ fn main(): i32 {
         None => {},
     }
 
-    0
+    return 0;
 }
 ```
 
@@ -109,7 +111,8 @@ fn main(): i32 {
 Hash map:
 
 ```
-import { HashMap } from "std/collections/hashmap"
+import from "std/collections/hashmap"
+import from "std/io/println"
 
 fn main(): i32 {
     let map: HashMap<string, i32> = HashMap::new()
@@ -121,7 +124,7 @@ fn main(): i32 {
         None => println!("Not found"),
     }
 
-    0
+    return 0;
 }
 ```
 
@@ -130,10 +133,11 @@ fn main(): i32 {
 HTTP client:
 
 ```
-import { http_get, http_post } from "net/http"
+import from "net/http"
+import from "net/http/get"  // Frequently used
 
 async fn fetch_example(): !string {
-    let response: HttpResponse = await http_get("https://example.com")
+    let response: HttpResponse = await get("https://example.com")
     response.body
 }
 
@@ -172,7 +176,7 @@ fn measure<T>(f: fn(): T): T {
     let result: T = f()
     let elapsed: i64 = timestamp() - start
     println!("Took {} ms", elapsed)
-    result
+    return result;
 }
 ```
 
@@ -242,8 +246,8 @@ import { sqrt, pow, sin, cos } from "std/math/mod"
 
 fn calculate(): f64 {
     let x: f64 = 2.0
-    let result: f64 = sqrt(x) + pow(x, 2.0)
-    result
+    let result: f64 = sqrt(x) + pow(x, 2.0);
+    return result;
 }
 ```
 
@@ -270,7 +274,7 @@ async fn handle_request(req: HttpRequest): !HttpResponse {
 
 async fn main(): !void {
     let server: Server = Server::bind("0.0.0.0:8080")
-    server.run(handle_request).await
+    server.run(handle_request).await;
 }
 ```
 
@@ -294,7 +298,7 @@ async fn process_lines(path: string): !Vec<string> {
         }
     }
 
-    lines
+    return lines;
 }
 ```
 

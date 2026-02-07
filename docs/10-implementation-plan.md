@@ -47,7 +47,7 @@ Total timeline: **~18-24 months** for 1 full-time developer.
 // Hello World
 fn main(): i32 {
     println!("Hello, World!")
-    0
+    return 0;
 }
 ```
 
@@ -328,7 +328,7 @@ fn main(): i32 {
     let numbers: Vec<i32> = Vec::new()
     try numbers.push(42)
     println!("{}", numbers.get(0))
-    0
+    return 0;
 }
 ```
 

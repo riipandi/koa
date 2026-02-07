@@ -240,7 +240,7 @@ fn add(x: i32, y: i32): i32 {  // OK
 
 // Function returns: always explicit
 fn identity<T>(x: T): T {  // OK
-    x
+    return x;
 }
 ```
 

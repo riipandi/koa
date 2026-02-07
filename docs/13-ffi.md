@@ -30,7 +30,7 @@ fn main(): i32 {
     // Call C function
     printf("Hello, World!\n".as_ptr())
 
-    0
+    return 0;
 }
 ```
 
@@ -70,7 +70,7 @@ fn main(): i32 {
     let s: string = "Hello"
     let len: usize = strlen(s.as_ptr())
     println!("Length: {}", len)
-    0
+    return 0;
 }
 ```
 
@@ -82,7 +82,7 @@ extern "C" fn strcpy(dest: *mut u8, src: *const u8) -> *mut u8;
 fn copy_to_c(s: string): *mut u8 {
     let buf: *mut u8 = malloc(s.len + 1)
     strcpy(buf, s.as_ptr())
-    buf
+    return buf;
 }
 ```
 
@@ -109,7 +109,7 @@ fn main(): i32 {
     let dist: f64 = point_distance(&p1, &p2)
     println!("Distance: {}", dist)
 
-    0
+    return 0;
 }
 ```
 

@@ -99,12 +99,16 @@ Module imports must be absolute. No relative paths allowed.
 **Consequences:**
 ```
 // ✅ CORRECT
-import { serve } from "net/http";
-import { utils } from "myapp_utils";
+import from "net/http";
+import from "myapp_utils";
+
+// ✅ CORRECT (specific items)
+import from "net/http/serve";
+import from "myapp_utils/helper";
 
 // ❌ ERROR
-import { utils } from "../utils";
-import { utils } from "./helpers";
+import from "../utils";
+import from "./helpers";
 ```
 
 **Alternatives Considered:**
@@ -411,11 +415,267 @@ let y = "hello";
 
 ---
 
+## ADR-014: Hybrid Import System (Module Prefix + Specific Items)
+
+**Status:** Accepted
+
+**Context:**
+Koa needs a module import system. Options include:
+- TypeScript-style: `import { x } from "mod"` → direct usage
+- Go-style: `import "mod"` → prefixed usage
+- Rust-style: Both `use std::io` and `use std::io::stdout`
+
+**Decision:**
+Support **both** module-level and specific item imports, but **no wildcard imports**.
+
+**Syntax:**
+```koa
+// Module-level import (default)
+import from "std/io";
+io.println("Hello");
+
+// Module with alias
+import from "std/io" as stdio;
+stdio.println("Hello");
+
+// Specific item import
+import from "std/io/println";
+println("Hello");  // Direct - no prefix
+
+// Specific item with alias
+import from "std/io/println" as p;
+p("Hello");
+```
+
+**Key Rules:**
+1. Path separator: `/` (consistent with module paths)
+2. Only 1 level: `module/item` (not `mod/submod/item`)
+3. Module name = last segment of import path (e.g., `"std/io"` → `io`)
+4. Conflict detection for both module names and specific items
+5. **No wildcard imports** (`import from "std/io/*"` is ERROR)
+
+**Rationale:**
+- **Flexibility:** Choose between explicit prefixes (module) or direct access (specific)
+- **Simplicity:** No wildcards means explicit dependencies
+- **Clarity:** Module prefixes prevent namespace pollution
+- **Familiarity:** Rust developers will recognize this pattern
+- **Balance:** Specific imports for high-frequency items (println, max, min)
+- **Explicitness:** Always clear where items come from
+
+**Usage Guidelines:**
+```
+// ✅ RECOMMENDED: Module prefix for features
+import from "http/server";
+import from "database/connection";
+
+// ✅ RECOMMENDED: Specific for utilities
+import from "std/io/println";
+import from "std/math/max";
+
+// ❌ AVOID: Too many specific imports
+import from "std/io/println";
+import from "std/io/print";
+import from "std/io/eprintln";
+// Use: import from "std/io" instead
+```
+
+**Conflict Resolution:**
+```koa
+// Module name conflicts
+import from "std/io";
+import from "mylib/io" as mylib_io;  // Alias required
+
+// Specific item conflicts
+import from "std/io/println";
+import from "mylib/println" as myprintln;  // Alias required
+```
+
+**Re-exports:**
+Support all re-export styles:
+```koa
+pub use io;                    // Re-export module
+pub use println;               // Re-export specific item
+pub use io as stdio;           // Re-export with alias
+pub use println as print_line; // Re-export item with alias
+```
+
+**Consequences:**
+- Two import styles to learn (but consistent: `/` separator)
+- More flexible than pure module-prefix
+- More explicit than wildcard imports
+- No namespace pollution from `*` imports
+- Better code organization: features as modules, utilities as items
+
+**Alternatives Considered:**
+- **Module prefix only:** Rejected (too verbose for frequently used items)
+- **Named imports only:** Rejected (less explicit, harder conflict resolution)
+- **Wildcard imports:** Rejected (namespace pollution, unclear dependencies)
+- **ESM-style `{ }`:** Rejected (different from Koa's path-based philosophy)
+
+**Comparison with Other Languages:**
+| Language | Module Import | Specific Import | Wildcard |
+|----------|--------------|-----------------|----------|
+| **Koa**  | `import from "std/io"` | `import from "std/io/println"` | ❌ No |
+| **Rust** | `use std::io` | `use std::io::stdout` | `use std::io::*` |
+| **Go**   | `import "fmt"` | N/A | N/A |
+| **TS**   | N/A | `import { x } from "mod"` | `import * as mod` |
+
+---
+
+## ADR-015: Rust-Style Local Module Resolution (mod.koa Required)
+
+**Status:** Accepted
+
+**Context:**
+Koa needs a local module system for organizing code within a project. Options include:
+- File-based (TypeScript/Node.js style): `utils.koa`, `math/algebra.koa`
+- Rust-style: Directory modules require `mod.koa`
+- Mixed: Optional `mod.koa`
+
+**Decision:**
+Adopt **Rust-style module resolution** where directory modules **MUST** have a `mod.koa` file.
+
+**Structure:**
+```
+src/
+├── main.koa
+├── utils.koa              # File module
+└── math/
+    ├── mod.koa            (REQUIRED)
+    ├── algebra.koa        # Child
+    └── calculus.koa       # Child
+```
+
+**Rules:**
+1. **File modules:** Single `.koa` file = module
+   - `src/utils.koa` → `import from "utils"`
+
+2. **Directory modules:** MUST have `mod.koa`
+   - `src/math/mod.koa` → `import from "math"`
+   - Cannot import children directly
+
+3. **Child modules:** Accessible through parent's `mod.koa`
+   - `src/math/algebra.koa` → accessed via `math/mod.koa`
+
+4. **Re-exports:** Parent `mod.koa` re-exports children
+   ```koa
+   // src/math/mod.koa
+   pub from "./algebra"
+   pub from "./calculus"
+
+   pub fn add(x: i32, y: i32): i32 { x + y }
+   ```
+
+**Resolution Order:**
+```
+import from "something":
+
+1. library/std/something.koa         (Stdlib file)
+2. library/std/something/mod.koa     (Stdlib directory)
+3. ~/.koa/packages/*/lib.koa         (External dependencies)
+4. src/something.koa                 (Local file)
+5. src/something/mod.koa             (Local directory - REQUIRES mod.koa)
+
+First match wins!
+```
+
+**Rationale:**
+- **Explicit structure:** Clear module boundaries
+- **Scalable:** Proven for large projects (Rust ecosystem)
+- **Refactoring:** Move files, update `mod.koa`, everything works
+- **Tooling:** Compiler can easily track module graph
+- **Familiar:** Rust developers feel at home
+- **Prevents ambiguity:** No confusion between file and directory modules
+
+**Consequences:**
+```koa
+// ✅ CORRECT: File module
+// src/utils.koa
+import from "utils"
+
+// ✅ CORRECT: Directory module with mod.koa
+// src/math/mod.koa (REQUIRED)
+import from "math"
+
+// ❌ ERROR: Directory without mod.koa
+// src/math/algebra.koa exists but NO mod.koa
+import from "math"  // ERROR: src/math/mod.koa does not exist
+
+// ❌ ERROR: Cannot import child directly
+import from "math/algebra"  // ERROR: must go through math/mod.koa
+
+// ✅ CORRECT: Import through parent
+import from "math"
+math::solve_linear()  // Re-exported from algebra.koa
+```
+
+**Error Handling:**
+```
+# Missing mod.koa
+Error: cannot find module 'math' in src/math/
+  → src/math/mod.koa does not exist
+  → Hint: create src/math/mod.koa or use file module (math.koa)
+
+# Attempting to import child directly
+Error: cannot import child module directly
+  → import from "math/algebra"
+  → Hint: import from "math" and access via math::<item>
+  → Parent module must re-export child in mod.koa
+```
+
+**Configuration (Koa.toml):**
+```toml
+[module]
+# Source directory (default: "src")
+src = "src"
+
+# Allow root files (default: false)
+allow_root = false  # If false, all .koa files must be in src/
+```
+
+**Best Practices:**
+```
+// ✅ GOOD: Logical module hierarchy
+src/
+├── auth/
+│   ├── mod.koa       # Re-exports login, register
+│   ├── login.koa
+│   └── register.koa
+└── database/
+    ├── mod.koa       # Re-exports postgres, sqlite
+    ├── postgres.koa
+    └── sqlite.koa
+
+// ❌ AVOID: Flat structure with many files
+src/
+├── auth_login.koa
+├── auth_register.koa
+├── db_postgres.koa
+├── db_sqlite.koa
+# Harder to navigate and organize
+```
+
+**Alternatives Considered:**
+- **File-based only:** Rejected (no directory modules, harder to organize)
+- **Optional mod.koa:** Rejected (ambiguous, two conventions)
+- **Relative paths:** Already rejected in ADR-003
+- **Node.js resolution:** Rejected (ambiguous `index.koa`)
+
+**Comparison with Other Languages:**
+| Language | File Module | Directory Module | Child Import |
+|----------|-------------|------------------|--------------|
+| **Koa**  | `utils.koa` | `math/mod.koa` (REQUIRED) | Via `mod.koa` only |
+| **Rust** | `utils.rs` | `math/mod.rs` (REQUIRED) | Via `mod.rs` only |
+| **Go**   | `utils.go` | `math/` (any `.go` file) | Via package |
+| **TS**   | `utils.ts` | `math/index.ts` (optional) | Direct or via index |
+
+---
+
 ## Future ADRs
 
 The following decisions may need ADRs in the future:
 
-- ADR-014: Async runtime model (Tokio vs async-std)
+- ADR-016: Async runtime model (Tokio vs async-std)
 - ADR-015: Error handling refinements
 - ADR-016: Macro system (if any)
 - ADR-017: Const generics

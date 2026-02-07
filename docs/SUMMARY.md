@@ -26,7 +26,21 @@
 - [x] Enhanced interface checking
 - [x] Generic enums
 
-### Recent Updates (2026-02-07)
+### Recent Updates (2026-02-08)
+
+**🎉 Module System & Entry Point Design Complete:**
+- **Hybrid import system** - Both module-level and specific item imports
+- **Module prefix imports** - `import from "std/io"` → use as `io.println()`
+- **Specific item imports** - `import from "std/io/println"` → use as `println()`
+- **No wildcard imports** - Explicit dependencies only (no `import *`)
+- **Path separator** - Consistent `/` separator for all imports
+- **Conflict detection** - Compiler errors for duplicate module/item names
+- **Flexible aliases** - `as` keyword for custom names
+- **Rust-style local modules** - Directory modules require `mod.koa` (ADR-015)
+- **Local module resolution** - File modules + directory modules with explicit structure
+- **main() signatures** - Support both `fn main(): void` and `fn main(): i32`
+- **Documentation consistency** - All returns explicit, semicolons consistent
+- **Documentation updated** - ADR-014, ADR-015, modules guide, syntax guide, examples
 
 **🎉 CLI Toolchain Complete:**
 - **Version command** - `koa --version` displays build info with git hash and timestamp

@@ -53,7 +53,7 @@ fn create_node(value: i32): *Node {
     node.value = value
     node.left = null
     node.right = null
-    node
+    return node;
 }
 ```
 

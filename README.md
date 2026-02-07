@@ -57,7 +57,7 @@ Create `main.koa`:
 ```koa
 pub fn main(): i32 {
     println!("Hello, World!");
-    0;
+    return 0;
 }
 ```
 

@@ -92,7 +92,7 @@ Non-blocking I/O operations:
 async fn read_file(path: string): !string {
     let file: File = await File::open_async(path)
     let content: string = await file.read_to_string_async()
-    content
+    return content;
 }
 ```
 
@@ -116,7 +116,7 @@ async fn handle_request(req: HttpRequest): !HttpResponse {
 
 async fn main(): !void {
     let server: Server = Server::bind("0.0.0.0:8080")
-    server.run(handle_request).await
+    server.run(handle_request).await;
 }
 ```
 
@@ -131,7 +131,7 @@ async fn fetch_multiple(urls: []string): !Vec<string> {
         try results.push(data)
     }
 
-    results
+    return results;
 }
 ```
 
@@ -146,7 +146,7 @@ async fn with_timeout<T>(
         res = await future => res,
         _ = await sleep(timeout_ms) => null,
     }
-    result
+    return result;
 }
 ```
 

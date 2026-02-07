@@ -28,10 +28,10 @@ Phase 2+ (Future):
 
 ```
 // SQLite driver
-import { SqliteConnection, SqliteResult } from "driver/sqlite"
+import from "driver/sqlite"
 
 // PostgreSQL driver
-import { PostgresConnection, PostgresResult } from "driver/postgres"
+import from "driver/postgres"
 ```
 
 ---
@@ -41,15 +41,17 @@ import { PostgresConnection, PostgresResult } from "driver/postgres"
 ### Connection
 
 ```
-import { SqliteConnection } from "driver/sqlite"
+import from "driver/sqlite"
+import from "std/io/println"
 
 async fn main(): !void {
     // In-memory database
-    let db: SqliteConnection = try SqliteConnection::in_memory()
+    let db: sqlite.SqliteConnection = try sqlite.SqliteConnection::in_memory()
 
     // File-based database
-    let db: SqliteConnection = try SqliteConnection::open("database.db")
+    let db: sqlite.SqliteConnection = try sqlite.SqliteConnection::open("database.db")
 
+    println("Connected to database!");
     // ...
 }
 ```
@@ -57,10 +59,11 @@ async fn main(): !void {
 ### Queries
 
 ```
-import { SqliteConnection } from "driver/sqlite"
+import from "driver/sqlite"
+import from "std/io/println"
 
 async fn example(): !void {
-    let db: SqliteConnection = try SqliteConnection::open("database.db")
+    let db: sqlite.SqliteConnection = try sqlite.SqliteConnection::open("database.db")
 
     // Execute SQL
     try db.execute(
@@ -72,6 +75,9 @@ async fn example(): !void {
         "INSERT INTO users (name, email) VALUES (?, ?)",
         ["Alice", "alice@example.com"]
     )
+
+    println("Inserted user!");
+```
 
     // Query
     let rows: SqliteResult = try db.query("SELECT * FROM users")
@@ -460,7 +466,7 @@ import { http_get, http_post } from "net/http"
 async fn main(): !void {
     let pool: PostgresPool = try PostgresPool::new(
         "postgresql://user:pass@localhost/mydb",
-        10
+    return 10;
     )
 
     async fn handle_get_user(req: HttpRequest): !HttpResponse {
@@ -483,6 +489,6 @@ async fn main(): !void {
     }
 
     let server: Server = Server::bind("0.0.0.0:8080")
-    server.run(handle_get_user).await
+    server.run(handle_get_user).await;
 }
 ```

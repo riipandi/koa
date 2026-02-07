@@ -125,10 +125,11 @@ http = { git = "https://github.com/riipandi/koa-http", version = "0.1.0" }
 
 ```
 // src/main.koa
-import { serve, Router } from "net/http";
+import from "net/http";
+import from "std/io/println";
 
 fn main(): i32 {
-    let router: Router = Router::new();
+    let router: http.Router = http.Router::new();
 
     router.get("/", fn(_req: Request): Response {
         return Response::ok("Hello, World!");
@@ -138,8 +139,8 @@ fn main(): i32 {
         return Response::ok("OK");
     });
 
-    println!("Server listening on :8080");
-    serve(router, ":8080");
+    println("Server listening on :8080");
+    http.serve(router, ":8080");
 
     return 0;
 }
@@ -164,7 +165,8 @@ cli = { git = "https://github.com/riipandi/koa-cli", version = "0.1.0" }
 
 ```
 // src/main.koa
-import { App, Arg } from "std/cli";
+import from "std/cli";
+import from "std/io/println";
 
 fn main(): i32 {
     let app: App = App::new("mycli")

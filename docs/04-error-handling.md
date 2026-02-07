@@ -108,7 +108,7 @@ fn main(): i32 {
         return 1
     }
     println!("{}", result)
-    0
+    return 0;
 }
 ```
 
@@ -179,19 +179,19 @@ fn main(): i32 {
     match read_config("config.toml") {
         Ok(config) => {
             println!("Loaded config")
-            0
+    return 0;
         },
         Err(error.NotFound) => {
             println!("Config file not found")
-            1
+    return 1;
         },
         Err(error.Corrupted) => {
             println!("Config file corrupted")
-            2
+    return 2;
         },
         Err(err) => {
             println!("Error: {}", err)
-            3
+    return 3;
         },
     }
 }
@@ -259,7 +259,7 @@ fn main(): i32 {
         Ok(()) => 0,
         Err(err) => {
             println!("Error: {}", err)
-            1
+    return 1;
         },
     }
 }
@@ -319,7 +319,7 @@ let data = read_file()?;  // ? operator
 
 // Koa: Error union
 fn read_file(): !string {
-    content
+    return content;
 }
 
 let data = try read_file()  // try keyword

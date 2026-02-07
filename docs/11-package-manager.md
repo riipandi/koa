@@ -257,7 +257,7 @@ fn main(): i32 {
     let client: HttpClient = HttpClient::new()
     let response: HttpResponse = await client.get("https://api.example.com")
     let data: Data = parse_json(response.body)
-    0
+    return 0;
 }
 ```
 
