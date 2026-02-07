@@ -1,18 +1,55 @@
-//! Koa Standard Library - Core
-//! 
-//! Basic types and utilities
+//! Koa Standard Library - I/O Module
+//!
+//! Provides input/output operations for Koa programs.
 
-/// Print a line to stdout
-pub fn println(s: string): void {
-    // Implementation in runtime
-}
+/// Print a line to stdout with newline
+/// This is a declaration that links to koa_println in runtime
+extern fn koa_println(s: string): void;
 
-/// Print to stdout
-pub fn print(s: string): void {
-    // Implementation in runtime
-}
+/// Print to stdout without newline
+/// This is a declaration that links to koa_print in runtime
+extern fn koa_print(s: string): void;
+
+/// Print formatted output (stub - formatting not yet implemented)
+/// This is a declaration that links to koa_printf in runtime
+extern fn koa_printf(format: string): void;
 
 /// Get string length
+/// This is a declaration that links to koa_strlen in runtime
+extern fn koa_strlen(s: string): i32;
+
+/// Read a line from stdin
+/// Returns a string that must be freed with koa_free_string
+extern fn koa_readline(): string;
+
+/// Free a string allocated by readline
+extern fn koa_free_string(s: string): void;
+
+/// Print a line to stdout (convenience wrapper)
+pub fn println(s: string): void {
+    koa_println(s);
+    return;
+}
+
+/// Print to stdout (convenience wrapper)
+pub fn print(s: string): void {
+    koa_print(s);
+    return;
+}
+
+/// Print formatted output (convenience wrapper - formatting not yet implemented)
+pub fn printf(format: string): void {
+    koa_printf(format);
+    return;
+}
+
+/// Get string length (convenience wrapper)
 pub fn strlen(s: string): i32 {
-    return 0;
+    return koa_strlen(s);
+}
+
+/// Read a line from stdin (convenience wrapper)
+pub fn readline(): string {
+    let line: string = koa_readline();
+    return line;
 }

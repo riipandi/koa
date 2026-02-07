@@ -1,0 +1,95 @@
+//! Koa Standard Library - Math Operations
+//!
+//! Provides mathematical functions and constants.
+
+/// Mathematical constants
+pub const PI: f64 = 3.141592653589793;
+pub const E: f64 = 2.718281828459045;
+
+/// Absolute value
+pub fn abs(x: f64): f64 {
+    if x < 0.0 {
+        return -x;
+    }
+    return x;
+}
+
+/// Round to nearest integer
+pub fn round(x: f64): i32 {
+    if x < 0.0 {
+        return (x - 0.5) as i32;
+    }
+    return (x + 0.5) as i32;
+}
+
+/// Floor (round down)
+pub fn floor(x: f64): i32 {
+    return x as i32;
+}
+
+/// Ceiling (round up)
+pub fn ceil(x: f64): i32 {
+    let i: i32 = x as i32;
+    if x > i as f64 {
+        return i + 1;
+    }
+    return i;
+}
+
+/// Power (x^exp)
+pub fn pow(x: f64, exp: f64): f64 {
+    // TODO: Implement actual pow
+    return 0.0;
+}
+
+/// Square root
+pub fn sqrt(x: f64): f64 {
+    // TODO: Implement actual sqrt
+    return 0.0;
+}
+
+/// Minimum of two values
+pub fn min(x: f64, y: f64): f64 {
+    if x < y {
+        return x;
+    }
+    return y;
+}
+
+/// Maximum of two values
+pub fn max(x: f64, y: f64): f64 {
+    if x > y {
+        return x;
+    }
+    return y;
+}
+
+/// Sine
+pub fn sin(x: f64): f64 {
+    // TODO: Implement actual sin
+    return 0.0;
+}
+
+/// Cosine
+pub fn cos(x: f64): f64 {
+    // TODO: Implement actual cos
+    return 0.0;
+}
+
+/// Tangent
+pub fn tan(x: f64): f64 {
+    // TODO: Implement actual tan
+    return 0.0;
+}
+
+/// Natural logarithm
+pub fn ln(x: f64): f64 {
+    // TODO: Implement actual ln
+    return 0.0;
+}
+
+/// Base-10 logarithm
+pub fn log10(x: f64): f64 {
+    // TODO: Implement actual log10
+    return 0.0;
+}

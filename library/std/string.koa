@@ -1,0 +1,64 @@
+//! Koa Standard Library - String Operations
+//!
+//! Provides string manipulation functions.
+
+/// Convert string to uppercase
+pub fn to_upper(s: string): string {
+    // TODO: Implement actual conversion
+    return s;
+}
+
+/// Convert string to lowercase
+pub fn to_lower(s: string): string {
+    // TODO: Implement actual conversion
+    return s;
+}
+
+/// Trim whitespace from both ends
+pub fn trim(s: string): string {
+    // TODO: Implement actual trimming
+    return s;
+}
+
+/// Check if string contains substring
+pub fn contains(s: string, substr: string): bool {
+    // TODO: Implement actual check
+    return false;
+}
+
+/// Split string by delimiter
+pub fn split(s: string, delim: string): []string {
+    // TODO: Implement actual split
+    let empty: []string = [];
+    return empty;
+}
+
+/// Get substring
+pub fn substring(s: string, start: i32, end: i32): string {
+    // TODO: Implement actual substring
+    return s;
+}
+
+/// Check if string starts with prefix
+pub fn starts_with(s: string, prefix: string): bool {
+    // TODO: Implement actual check
+    return false;
+}
+
+/// Check if string ends with suffix
+pub fn ends_with(s: string, suffix: string): bool {
+    // TODO: Implement actual check
+    return false;
+}
+
+/// Repeat string n times
+pub fn repeat(s: string, n: i32): string {
+    // TODO: Implement actual repeat
+    return s;
+}
+
+/// Replace occurrences of substring
+pub fn replace(s: string, from: string, to: string): string {
+    // TODO: Implement actual replace
+    return s;
+}

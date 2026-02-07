@@ -93,8 +93,19 @@
 4. Generic enums (Option<T>, Result<T,E>)
 5. Performance optimization
 
+### Recent Updates (2026-02-08)
+
+**🎉 Standard Library Architecture Complete:**
+- **Proper stdlib structure** - Split into `library/std/` (Koa code) and `crates/koa-runtime/` (Rust code)
+- **Runtime implementation** - I/O functions in `koa-runtime/src/io.rs` with C FFI
+- **New stdlib modules** - Added `string.koa`, `convert.koa`, `math.koa`
+- **Root module** - `std/mod.koa` re-exports all submodules
+- **Documentation** - Complete architecture guide in `docs/16-stdlib-architecture.md`
+- **Proper extern declarations** - Koa declares, runtime implements
+- **Code splitting** - IR and TypeChecker modules split for better organization
+
 ### Phase 3+: Planned 📋
-- [ ] Standard library
-- [ ] Garbage collector
+- [ ] Standard library implementation (stubs need actual implementations)
+- [ ] Garbage collector integration
 - [ ] Async/await runtime
 - [ ] Toolchain (REPL, LSP)

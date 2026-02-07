@@ -1,0 +1,23 @@
+//! Koa Standard Library
+//!
+//! The standard library provides essential functionality for Koa programs,
+//! including I/O operations, string manipulation, math functions, and more.
+//!
+//! # Modules
+//!
+//! - `io.koa` - Input/output operations
+//! - `string.koa` - String manipulation
+//! - `convert.koa` - Type conversions
+//! - `math.koa` - Mathematical functions
+//!
+//! # Usage
+//!
+//! Import modules from the standard library:
+//!
+//! ```koa
+//! import from "std/io";
+//! import from "std/math";
+//!
+//! io.println("Hello, World!");
+//! let result: f64 = math.sqrt(16.0);
+//! ```

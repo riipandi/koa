@@ -1,0 +1,43 @@
+//! Koa Standard Library - Type Conversions
+//!
+//! Provides functions for converting between types.
+
+/// Convert integer to string
+pub fn i32_to_string(i: i32): string {
+    // TODO: Implement actual conversion
+    return "";
+}
+
+/// Convert string to integer
+pub fn string_to_i32(s: string): i32 {
+    // TODO: Implement actual conversion
+    return 0;
+}
+
+/// Convert float to string
+pub fn f64_to_string(f: f64): string {
+    // TODO: Implement actual conversion
+    return "";
+}
+
+/// Convert string to float
+pub fn string_to_f64(s: string): f64 {
+    // TODO: Implement actual conversion
+    return 0.0;
+}
+
+/// Convert boolean to string
+pub fn bool_to_string(b: bool): string {
+    if b {
+        return "true";
+    }
+    return "false";
+}
+
+/// Convert string to boolean
+pub fn string_to_bool(s: string): bool {
+    if s == "true" {
+        return true;
+    }
+    return false;
+}

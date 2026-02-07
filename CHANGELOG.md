@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Standard Library Architecture (2026-02-08)
+
+#### Runtime Library Structure
+- **Proper stdlib architecture** - Split into two parts:
+  - `library/std/` - Koa source code (.koa files)
+  - `crates/koa-runtime/` - Rust implementation (.rs files)
+- **I/O module** - `koa-runtime/src/io.rs` with C FFI functions:
+  - `koa_print()` - Print without newline
+  - `koa_println()` - Print with newline
+  - `koa_printf()` - Formatted output
+  - `koa_readline()` - Read from stdin
+  - `koa_strlen()` - String length
+  - Legacy support: `puts()`, `printf()` for C compatibility
+
+#### Standard Library Modules
+- **`library/std/io.koa`** - I/O operations with extern declarations
+- **`library/std/string.koa`** - String manipulation functions (stubs)
+- **`library/std/convert.koa`** - Type conversion utilities (stubs)
+- **`library/std/math.koa`** - Mathematical functions and constants (stubs)
+- **`library/std/mod.koa`** - Root module that re-exports all submodules
+
+#### Runtime Features
+- Added `koa_init()` and `koa_cleanup()` for runtime lifecycle
+- Proper `extern "C"` functions with `#[no_mangle]`
+- C string handling with `std::ffi::CStr`
+- Memory safety with null pointer checks
+
+#### Documentation
+- Added `docs/16-stdlib-architecture.md` - Complete guide to stdlib structure
+- Explains compilation process and linking
+- Documents how to add new stdlib functions
+- Examples of I/O, math, and string usage
+
+#### Code Organization
+- Split IR module (1162 → 1174 lines): `mod.rs`, `types.rs`, `lower.rs`
+- Split TypeChecker module (1101 → 1115 lines): `mod.rs`, `symbol.rs`, `checker.rs`
+- All `mod.rs` files now only 9 lines (clean re-exports)
+
+#### Examples
+- Updated `examples/basic/` with working example (no external modules yet)
+- Comprehensive README with language features demonstration
+- Shows variables, arithmetic, control flow, functions, recursion
+
 ### Added - Module System Implementation (2026-02-08)
 
 #### AST Changes
