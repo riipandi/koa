@@ -1,4 +1,4 @@
-import * as io from "std/io";
+import from "std/io" as io;
 
 fn main(): i32 {
     io.println("=== Koa Demo ===");

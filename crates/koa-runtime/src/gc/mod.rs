@@ -2,8 +2,8 @@
 //!
 //! A Go-style concurrent garbage collector for Koa.
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Garbage Collector
 pub struct GarbageCollector {

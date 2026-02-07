@@ -1,3 +1,5 @@
+import from "std/io";
+
 fn main(): i32 {
     io.println("Hello from Koa!");
     return 0;

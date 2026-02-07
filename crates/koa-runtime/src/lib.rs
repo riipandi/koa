@@ -2,13 +2,13 @@
 //!
 //! This library provides the runtime support for Koa programs.
 
-pub mod gc;
-pub mod async_;
 pub mod alloc;
+pub mod async_;
+pub mod gc;
 
-pub use gc::{GarbageCollector, WriteBarrier};
+pub use alloc::{ArenaAllocator, BumpAllocator};
 pub use async_::{AsyncRuntime, Task, sleep};
-pub use alloc::{BumpAllocator, ArenaAllocator};
+pub use gc::{GarbageCollector, WriteBarrier};
 
 /// Runtime version
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

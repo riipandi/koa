@@ -14,6 +14,5 @@ pub fn print(s: string): void {
 
 /// Get string length
 pub fn strlen(s: string): i32 {
-    // Implementation in runtime
-    0;
+    return 0;
 }

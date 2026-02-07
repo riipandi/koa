@@ -46,5 +46,7 @@ fn test_generic_call_parsing() -> Result<()> {
 
 #[test]
 fn test_generic_struct_instantiation_parsing() -> Result<()> {
-    check("struct Box<T> { value: T; } fn main(): void { let b: Box<i32> = Box<i32> { value: 42 }; }")
+    check(
+        "struct Box<T> { value: T; } fn main(): void { let b: Box<i32> = Box<i32> { value: 42 }; }",
+    )
 }

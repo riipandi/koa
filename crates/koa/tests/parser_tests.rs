@@ -1,6 +1,6 @@
+use koa::ast::{Ast, Declaration, Type};
 use koa::lexer::Lexer;
 use koa::parser::Parser;
-use koa::ast::{Ast, Declaration, Type};
 
 fn parse(source: &str) -> Ast {
     let mut lexer = Lexer::new(source);

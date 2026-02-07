@@ -1,7 +1,7 @@
-import { println, print } from "std/io";
+import from "std/io";
 
 fn main(): i32 {
-    println("Hello, World!");
-    print("Testing print...");
+    io.println("Hello, World!");
+    io.print("Testing print...");
     return 0;
 }

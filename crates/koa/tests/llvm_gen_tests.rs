@@ -1,5 +1,5 @@
+use koa::ir::{IrConstant, IrFunction, IrInstruction, IrNamedBlock, IrOperand, IrProgram, IrType};
 use koa::llvm_gen::compile_to_llvm;
-use koa::ir::{IrProgram, IrFunction, IrNamedBlock, IrInstruction, IrOperand, IrConstant, IrType};
 
 #[test]
 fn test_empty_function_compilation() {

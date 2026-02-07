@@ -8,7 +8,6 @@ use crate::parser::Parser;
 use miette::Result;
 use std::collections::HashMap;
 use std::fmt;
-use std::path::Path;
 
 /// Intermediate representation of a Koa program
 #[derive(Debug, Clone)]
@@ -327,67 +326,71 @@ impl IrLowerer {
     }
 
     fn process_import(&mut self, import_decl: &ImportDecl) -> Result<()> {
-        for specifier in &import_decl.specifiers {
-            match specifier {
-                ImportSpecifier::Star(alias) => {
-                    let module_name = alias.clone().unwrap_or_else(|| {
-                        import_decl
-                            .from
-                            .split('/')
-                            .next_back()
-                            .unwrap_or(&import_decl.from)
-                            .to_string()
-                    });
+        match &import_decl.kind {
+            ImportKind::Module { alias } => {
+                let module_name = alias.clone().unwrap_or_else(|| {
+                    import_decl
+                        .from
+                        .split('/')
+                        .next_back()
+                        .unwrap_or(&import_decl.from)
+                        .to_string()
+                });
 
-                    let file_path = self.resolve_import_path(&import_decl.from)?;
-                    let source = std::fs::read_to_string(&file_path).map_err(|e| {
-                        miette::miette!("Failed to read import '{}': {}", file_path, e)
-                    })?;
+                let file_path = self.resolve_import_path(&import_decl.from)?;
+                let source = std::fs::read_to_string(&file_path)
+                    .map_err(|e| miette::miette!("Failed to read import '{}': {}", file_path, e))?;
 
-                    let mut lexer = Lexer::new(&source);
-                    let tokens = lexer.tokenize()?;
+                let mut lexer = Lexer::new(&source);
+                let tokens = lexer.tokenize()?;
 
-                    let mut parser = Parser::new(tokens);
-                    let ast = parser.parse()?;
+                let mut parser = Parser::new(tokens);
+                let ast = parser.parse()?;
 
-                    let mut imported_funcs = Vec::new();
-                    for decl in &ast.declarations {
-                        if let Declaration::FnDecl(fn_decl) = decl
-                            && fn_decl.is_pub
-                        {
-                            self.fn_map.insert(fn_decl.name.clone(), fn_decl.clone());
-                            imported_funcs.push(fn_decl.name.clone());
-                        }
+                let mut imported_funcs = Vec::new();
+                for decl in &ast.declarations {
+                    if let Declaration::FnDecl(fn_decl) = decl
+                        && fn_decl.is_pub
+                    {
+                        self.fn_map.insert(fn_decl.name.clone(), fn_decl.clone());
+                        imported_funcs.push(fn_decl.name.clone());
                     }
-
-                    self.import_modules
-                        .insert(module_name.clone(), imported_funcs);
-                    self.import_aliases
-                        .insert(module_name.clone(), import_decl.from.clone());
                 }
-                ImportSpecifier::Named(name, _) => {
-                    let file_path = self.resolve_import_path(&import_decl.from)?;
-                    let source = std::fs::read_to_string(&file_path).map_err(|e| {
-                        miette::miette!("Failed to read import '{}': {}", file_path, e)
-                    })?;
 
-                    let mut lexer = Lexer::new(&source);
-                    let tokens = lexer.tokenize()?;
+                self.import_modules
+                    .insert(module_name.clone(), imported_funcs);
+                self.import_aliases
+                    .insert(module_name.clone(), import_decl.from.clone());
+            }
+            ImportKind::Specific { name, alias } => {
+                let import_path = if import_decl.from.contains('/') {
+                    let parts: Vec<&str> = import_decl.from.rsplitn(2, '/').collect();
+                    parts[1].to_string()
+                } else {
+                    import_decl.from.clone()
+                };
 
-                    let mut parser = Parser::new(tokens);
-                    let ast = parser.parse()?;
+                let file_path = self.resolve_import_path(&import_path)?;
+                let source = std::fs::read_to_string(&file_path)
+                    .map_err(|e| miette::miette!("Failed to read import '{}': {}", file_path, e))?;
 
-                    for decl in &ast.declarations {
-                        if let Declaration::FnDecl(fn_decl) = decl
-                            && fn_decl.name == *name
-                            && fn_decl.is_pub
-                        {
-                            // Create unique mangled name for imported function
-                            let module_prefix = import_decl.from.replace('/', "__");
-                            let mangled_name = format!("{}__{}", module_prefix, name);
-                            self.fn_map.insert(mangled_name.clone(), fn_decl.clone());
-                            self.import_aliases.insert(name.clone(), mangled_name);
-                        }
+                let mut lexer = Lexer::new(&source);
+                let tokens = lexer.tokenize()?;
+
+                let mut parser = Parser::new(tokens);
+                let ast = parser.parse()?;
+
+                for decl in &ast.declarations {
+                    if let Declaration::FnDecl(fn_decl) = decl
+                        && fn_decl.name == *name
+                        && fn_decl.is_pub
+                    {
+                        let module_prefix = import_path.replace('/', "__");
+                        let mangled_name = format!("{}__{}", module_prefix, name);
+                        self.fn_map.insert(mangled_name.clone(), fn_decl.clone());
+
+                        let import_name = alias.clone().unwrap_or_else(|| name.clone());
+                        self.import_aliases.insert(import_name, mangled_name);
                     }
                 }
             }
@@ -396,11 +399,83 @@ impl IrLowerer {
     }
 
     fn resolve_import_path(&self, import_path: &str) -> Result<String> {
-        if import_path.starts_with("std/") {
-            let relative_path = import_path.trim_start_matches("std/");
-            let full_path = format!("library/std/{}.koa", relative_path);
-            if Path::new(&full_path).exists() {
-                return Ok(full_path);
+        use std::path::Path as StdPath;
+
+        let cleaned_path = import_path.trim_start_matches('/');
+        let path_obj = StdPath::new(cleaned_path);
+
+        let file_name = path_obj
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or(cleaned_path);
+
+        let dir_name = path_obj
+            .parent()
+            .and_then(|p| p.to_str())
+            .and_then(|s| if s.is_empty() { None } else { Some(s) });
+
+        let dir_path =
+            dir_name.map(|d| d.replace('/', std::path::MAIN_SEPARATOR.to_string().as_str()));
+
+        if let Some(ref dir) = dir_path {
+            let std_file_path = StdPath::new("library/std")
+                .join(dir.replace(std::path::MAIN_SEPARATOR, "/"))
+                .join(format!("{}.koa", file_name));
+
+            if std_file_path.exists() {
+                return Ok(std_file_path.to_string_lossy().to_string());
+            }
+
+            let std_mod_path = StdPath::new("library/std")
+                .join(dir.replace(std::path::MAIN_SEPARATOR, "/"))
+                .join(file_name)
+                .join("mod.koa");
+
+            if std_mod_path.exists() {
+                return Ok(std_mod_path.to_string_lossy().to_string());
+            }
+        } else {
+            let std_file_path = StdPath::new("library/std").join(format!("{}.koa", file_name));
+
+            if std_file_path.exists() {
+                return Ok(std_file_path.to_string_lossy().to_string());
+            }
+
+            let std_mod_path = StdPath::new("library/std").join(file_name).join("mod.koa");
+
+            if std_mod_path.exists() {
+                return Ok(std_mod_path.to_string_lossy().to_string());
+            }
+        }
+
+        if let Some(ref dir) = dir_path {
+            let src_file_path = StdPath::new("src")
+                .join(dir.replace(std::path::MAIN_SEPARATOR, "/"))
+                .join(format!("{}.koa", file_name));
+
+            if src_file_path.exists() {
+                return Ok(src_file_path.to_string_lossy().to_string());
+            }
+
+            let src_mod_path = StdPath::new("src")
+                .join(dir.replace(std::path::MAIN_SEPARATOR, "/"))
+                .join(file_name)
+                .join("mod.koa");
+
+            if src_mod_path.exists() {
+                return Ok(src_mod_path.to_string_lossy().to_string());
+            }
+        } else {
+            let src_file_path = StdPath::new("src").join(format!("{}.koa", file_name));
+
+            if src_file_path.exists() {
+                return Ok(src_file_path.to_string_lossy().to_string());
+            }
+
+            let src_mod_path = StdPath::new("src").join(file_name).join("mod.koa");
+
+            if src_mod_path.exists() {
+                return Ok(src_mod_path.to_string_lossy().to_string());
             }
         }
 

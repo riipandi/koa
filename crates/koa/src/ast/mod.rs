@@ -461,19 +461,21 @@ pub struct ErrorDecl {
     pub is_pub: bool,
 }
 
+/// Import kind
+#[derive(Debug, Clone)]
+pub enum ImportKind {
+    /// Module-level import: `import from "std/io"`
+    Module { alias: Option<String> },
+    /// Specific item import: `import from "std/io/println"`
+    Specific { name: String, alias: Option<String> },
+}
+
 /// Import declaration
 #[derive(Debug, Clone)]
 pub struct ImportDecl {
-    pub specifiers: Vec<ImportSpecifier>,
+    pub kind: ImportKind,
     pub from: String,
     pub span: Span,
-}
-
-/// Import specifier
-#[derive(Debug, Clone)]
-pub enum ImportSpecifier {
-    Named(String, Option<String>),
-    Star(Option<String>),
 }
 
 /// Export declaration
@@ -487,9 +489,20 @@ pub struct ExportDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
     // Primitives
-    I8, I16, I32, I64, I128, Isize,
-    U8, U16, U32, U64, U128, Usize,
-    F32, F64,
+    I8,
+    I16,
+    I32,
+    I64,
+    I128,
+    Isize,
+    U8,
+    U16,
+    U32,
+    U64,
+    U128,
+    Usize,
+    F32,
+    F64,
     Bool,
     String,
     Void,

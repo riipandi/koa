@@ -1,6 +1,6 @@
+use koa::ir::IrLowerer;
 use koa::lexer::Lexer;
 use koa::parser::Parser;
-use koa::ir::IrLowerer;
 
 fn lower(source: &str) -> miette::Result<koa::ir::IrProgram> {
     let mut lexer = Lexer::new(source);

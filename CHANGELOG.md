@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Module System Implementation (2026-02-08)
+
+#### AST Changes
+- Removed `ImportSpecifier` enum (old syntax)
+- Added `ImportKind` enum with two variants:
+  - `Module { alias }` - Module-level imports
+  - `Specific { name, alias }` - Specific item imports
+- Simplified `ImportDecl` structure
+
+#### Parser Changes
+- Rewrote `parse_import_decl()` to support new syntax:
+  - `import from "module"` - Module import without alias
+  - `import from "module" as alias` - Module import with alias
+  - `import from "module/item"` - Specific item import
+  - `import from "module/item" as alias` - Specific item with alias
+- Removed old `{ named }` and `* as` syntax support
+
+#### IR Changes
+- Rewrote `process_import()` to handle `ImportKind`
+- Implemented Rust-style local module resolution (ADR-015):
+  1. Standard library (`library/std/*.koa` and `library/std/*/mod.koa`)
+  2. Local workspace (`src/*.koa` and `src/*/mod.koa`)
+- Support for `mod.koa` required in directory modules
+- Hybrid import processing with conflict detection
+
+#### Type Checker
+- Updated `check_import_decl()` for new import validation
+- Placeholder for future conflict detection enhancement
+
+#### Examples Updated
+All `.koa` files migrated to new syntax:
+- `examples/simple/named_import.koa` - Now uses module prefix
+- `examples/simple/demo.koa` - Updated to `import from "std/io" as io`
+- `examples/simple/hello.koa` - Added import statement
+- `examples/simple/calc.koa` - Added import with prefix
+- `examples/simple/builtin_print.koa` - Updated with module prefix
+- `examples/basic/src/main.koa` - Added import statement
+- `library/std/io.koa` - Fixed implicit return
+
+#### Code Quality
+- All 30 tests passing
+- Clippy clean (0 warnings)
+- Release build successful
+- Code formatted with `cargo fmt`
+
+#### Documentation
+- ADR-014: Hybrid Import System (accepted)
+- ADR-015: Rust-Style Local Module Resolution (accepted)
+- Complete module system guide with examples
+- Syntax guide updated with new import syntax
+
 ### Added - CLI Enhancements (2026-02-07)
 
 #### Version Command

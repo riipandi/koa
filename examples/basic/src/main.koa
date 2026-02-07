@@ -1,4 +1,6 @@
+import from "std/io";
+
 fn main(): i32 {
-    println("Hello, World!");
+    io.println("Hello, World!");
     return 0;
 }
