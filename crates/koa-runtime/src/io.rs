@@ -27,7 +27,12 @@ use std::os::raw::c_char;
 ///
 /// This function is called from Koa programs and uses Rust's `println!` macro internally.
 /// The C ABI (`extern "C")` is only for the FFI boundary, not for using C functions.
+///
+/// # Safety
+///
+/// The `s` pointer must be either null or a valid C string (null-terminated UTF-8).
 #[unsafe(no_mangle)]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn koa_println(s: *const c_char) {
     unsafe {
         if s.is_null() {
@@ -47,7 +52,12 @@ pub extern "C" fn koa_println(s: *const c_char) {
 ///
 /// This function uses Rust's `print!` macro internally.
 /// The C ABI is only for FFI compatibility with Koa.
+///
+/// # Safety
+///
+/// The `s` pointer must be either null or a valid C string (null-terminated UTF-8).
 #[unsafe(no_mangle)]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn koa_print(s: *const c_char) {
     unsafe {
         if s.is_null() {
@@ -66,7 +76,12 @@ pub extern "C" fn koa_print(s: *const c_char) {
 /// Note: This is a simplified stub, proper formatting is TODO
 ///
 /// TODO: Implement proper format string parsing
+///
+/// # Safety
+///
+/// The `format` pointer must be either null or a valid C string (null-terminated UTF-8).
 #[unsafe(no_mangle)]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn koa_printf(format: *const c_char) {
     unsafe {
         if format.is_null() {
@@ -82,7 +97,12 @@ pub extern "C" fn koa_printf(format: *const c_char) {
 }
 
 /// Print a string to stdout (legacy name, uses C's puts)
+///
+/// # Safety
+///
+/// The `s` pointer must be either null or a valid C string (null-terminated UTF-8).
 #[unsafe(no_mangle)]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn puts(s: *const c_char) -> i32 {
     unsafe {
         if s.is_null() {
@@ -101,7 +121,12 @@ pub extern "C" fn puts(s: *const c_char) -> i32 {
 
 /// Print formatted string (legacy name, uses C's printf)
 /// Note: This is a simplified stub, proper formatting is TODO
+///
+/// # Safety
+///
+/// The `format` pointer must be either null or a valid C string (null-terminated UTF-8).
 #[unsafe(no_mangle)]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn printf(format: *const c_char) -> i32 {
     unsafe {
         if format.is_null() {
@@ -118,7 +143,12 @@ pub extern "C" fn printf(format: *const c_char) -> i32 {
 }
 
 /// Get string length
+///
+/// # Safety
+///
+/// The `s` pointer must be either null or a valid C string (null-terminated UTF-8).
 #[unsafe(no_mangle)]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn koa_strlen(s: *const c_char) -> i32 {
     unsafe {
         if s.is_null() {
@@ -154,7 +184,13 @@ pub extern "C" fn koa_readline() -> *mut c_char {
 }
 
 /// Free a string allocated by koa_readline
+///
+/// # Safety
+///
+/// The `s` pointer must be either null or a pointer previously returned by
+/// `koa_readline`. Using a dangling or invalid pointer is undefined behavior.
 #[unsafe(no_mangle)]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn koa_free_string(s: *mut c_char) {
     if !s.is_null() {
         unsafe {

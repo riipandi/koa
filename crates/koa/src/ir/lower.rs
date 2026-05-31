@@ -62,11 +62,9 @@ impl IrLowerer {
                 Declaration::EnumDecl(e) => {
                     self.enum_map.insert(e.name.clone(), e.clone());
                 }
-                Declaration::FnDecl(f) => {
-                    // Skip builtin functions
-                    if !self.builtin_functions.contains(&f.name) {
-                        self.fn_map.insert(f.name.clone(), f.clone());
-                    }
+                // Skip builtin functions
+                Declaration::FnDecl(f) if !self.builtin_functions.contains(&f.name) => {
+                    self.fn_map.insert(f.name.clone(), f.clone());
                 }
                 _ => {}
             }

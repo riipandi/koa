@@ -33,15 +33,22 @@ impl BumpAllocator {
         })
     }
 
-    pub fn allocate(&mut self, size: usize, _align: usize) -> Option<NonNull<u8>> {
-        let new_current = unsafe { self.current.as_ptr().add(size) };
+    pub fn allocate(&mut self, size: usize, align: usize) -> Option<NonNull<u8>> {
+        let current_addr = self.current.as_ptr() as usize;
 
-        if new_current > self.end.as_ptr() {
+        // Align the current pointer to the requested alignment
+        let aligned_addr = (current_addr + align - 1) & !(align - 1);
+        let _offset = aligned_addr - current_addr;
+
+        // Calculate new current position after alignment padding + requested size
+        let new_current = aligned_addr + size;
+
+        if new_current > self.end.as_ptr() as usize {
             return None; // Out of memory
         }
 
-        let ptr = self.current;
-        self.current = unsafe { NonNull::new_unchecked(new_current) };
+        let ptr = unsafe { NonNull::new_unchecked(aligned_addr as *mut u8) };
+        self.current = unsafe { NonNull::new_unchecked(new_current as *mut u8) };
 
         Some(ptr)
     }
